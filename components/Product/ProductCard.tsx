@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ShoppingCart } from 'lucide-react';
 import { Product } from '../../types';
 import { useCart } from '../../contexts/CartContext';
@@ -12,11 +12,40 @@ interface ProductCardProps {
 
 const ProductCard: React.FC<ProductCardProps> = ({ product, exchangeRate }) => {
   const { addToCart } = useCart();
+  const [isIntersecting, setIsIntersecting] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  
   const priceInVes = product.precio * exchangeRate;
   const imageUrl = transformDriveUrl(product.imagenurl);
 
+  // Implementación de Intersection Observer para Lazy Loading
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsIntersecting(true);
+          observer.disconnect(); // Una vez que es visible, dejamos de observar
+        }
+      },
+      {
+        rootMargin: '100px', // Empezamos a cargar 100px antes de que entre al viewport
+        threshold: 0.01
+      }
+    );
+
+    if (containerRef.current) {
+      observer.observe(containerRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
+
   return (
-    <div className="group relative bg-white rounded-custom p-6 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 flex flex-col">
+    <div 
+      ref={containerRef}
+      className="group relative bg-white rounded-custom p-6 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 flex flex-col h-full"
+    >
       {/* Badge de disponibilidad */}
       <div className={`absolute top-4 right-4 px-3 py-1 rounded-full text-[10px] uppercase tracking-wider font-bold z-10 ${
         product.disponible 
@@ -26,18 +55,30 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, exchangeRate }) => {
         {product.disponible ? 'Disponible' : 'Agotado'}
       </div>
       
-      {/* Imagen */}
+      {/* Contenedor de Imagen con Lazy Loading */}
       <div className="relative h-48 mb-4 overflow-hidden rounded-inner bg-offwhite flex items-center justify-center">
-        {product.imagenurl ? (
-          <img
-            src={imageUrl}
-            alt={product.nombre}
-            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-            loading="lazy"
-            onError={(e) => {
-                (e.target as HTMLImageElement).src = 'https://picsum.photos/seed/' + product.id + '/400/400';
-            }}
-          />
+        {isIntersecting && product.imagenurl ? (
+          <>
+            {/* Skeleton/Loader animado mientras carga */}
+            {!isLoaded && (
+              <div className="absolute inset-0 bg-gray-200 animate-pulse flex items-center justify-center">
+                <span className="text-gray-400 text-xs font-bold uppercase tracking-widest">Cargando...</span>
+              </div>
+            )}
+            <img
+              src={imageUrl}
+              alt={product.nombre}
+              onLoad={() => setIsLoaded(true)}
+              className={`w-full h-full object-cover group-hover:scale-110 transition-all duration-700 ease-out ${
+                isLoaded ? 'opacity-100' : 'opacity-0'
+              }`}
+              loading="lazy"
+              onError={(e) => {
+                  (e.target as HTMLImageElement).src = 'https://picsum.photos/seed/' + product.id + '/400/400';
+                  setIsLoaded(true);
+              }}
+            />
+          </>
         ) : (
           <div className="w-full h-full bg-gradient-to-br from-primary to-accent flex items-center justify-center">
             <span className="text-white text-4xl font-bold">
@@ -47,17 +88,16 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, exchangeRate }) => {
         )}
       </div>
       
-      {/* Información */}
-      <div className="flex-1">
+      {/* Información del Producto */}
+      <div className="flex-1 flex flex-col">
           <p className="text-[10px] text-accent font-bold uppercase tracking-widest mb-1">
-            {product.categoria}
+            {product.categoria || 'General'}
           </p>
           <h3 className="text-lg font-bold text-darkText mb-2 line-clamp-2 min-h-[3.5rem]">
             {product.nombre}
           </h3>
           
-          {/* Precios */}
-          <div className="mb-6">
+          <div className="mt-auto mb-6">
             <div className="text-2xl font-black text-primary">
               {formatCurrency(product.precio)}
             </div>
@@ -67,7 +107,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, exchangeRate }) => {
           </div>
       </div>
       
-      {/* Botón */}
+      {/* Botón de Acción */}
       <button
         onClick={() => addToCart(product)}
         disabled={!product.disponible}
