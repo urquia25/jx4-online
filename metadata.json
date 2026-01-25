@@ -1,0 +1,7 @@
+{
+  "name": "JX4 Catálogo y Pedidos v9.4",
+  "description": "Un sistema avanzado de catálogo y pedidos para JX4 Paracotos, integrado con Google Apps Script y Supabase.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
