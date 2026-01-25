@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ShoppingCart, ImageIcon, Info, AlertCircle, X, ShoppingBag, Trash2, ArrowRight } from 'lucide-react';
+import { ShoppingCart, ImageIcon, Info, AlertCircle, X, ShoppingBag, Trash2, ArrowRight, Scale, AlertTriangle } from 'lucide-react';
 import { Product } from '../../types';
 import { useCart } from '../../contexts/CartContext';
 import { transformDriveUrl, formatCurrency, formatBs } from '../../utils/formatters';
@@ -24,11 +24,10 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, exchangeRate }) => {
   const priceInVes = rawPrice * (exchangeRate || 36.5);
   const imageUrl = transformDriveUrl(product.imagenurl);
 
+  // Lógica mejorada para detectar productos pesados
   const isWeighted = product.unidad === 'kg' || 
-                     product.categoria?.toLowerCase().includes('carniceria') || 
-                     product.categoria?.toLowerCase().includes('charcuteria') ||
-                     product.categoria?.toLowerCase().includes('frutas') ||
-                     product.categoria?.toLowerCase().includes('verduras');
+                     ['carniceria', 'charcuteria', 'frutas', 'verduras', 'aves de corral', 'cerdo']
+                     .some(cat => product.categoria?.toLowerCase().includes(cat));
 
   const handleAddToCart = () => {
     const success = addToCart(product);
@@ -62,7 +61,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, exchangeRate }) => {
           ? 'bg-green-50 text-green-600' 
           : 'bg-red-50 text-red-600'
       }`}>
-        {product.disponible ? (isWeighted ? '✓ Por Kilo' : '✓ Stock') : '✕ Agotado'}
+        {product.disponible ? (isWeighted ? '✓ Venta por Kilo' : '✓ En Stock') : '✕ Agotado'}
       </div>
       
       {/* Image Container */}
@@ -109,41 +108,56 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, exchangeRate }) => {
             {product.categoria || 'Variado'}
           </p>
           
-          <h3 className="text-base font-bold text-primary mb-2 leading-tight line-clamp-2 min-h-[2.5rem]">
+          <h3 className="text-base font-bold text-primary mb-3 leading-tight line-clamp-2 min-h-[2.5rem]">
             {product.nombre}
           </h3>
 
           {isWeighted && (
-            <div className="mb-4 flex items-start gap-1.5 p-2 bg-amber-50 rounded-xl border border-amber-100/50">
-              <AlertCircle size={12} className="text-amber-600 mt-0.5 flex-shrink-0" />
-              <p className="text-[9px] font-bold text-amber-700 leading-tight">
-                Sujeto a peso final.
+            <div className="mb-4 flex items-center gap-2 px-3 py-2 bg-amber-50 rounded-xl border border-amber-100/50">
+              <Scale size={14} className="text-amber-600 flex-shrink-0" />
+              <p className="text-[9px] font-black text-amber-800 uppercase tracking-tighter">
+                Producto por Peso
               </p>
             </div>
           )}
           
           <div className="mt-auto pt-4 flex flex-col border-t border-gray-50">
             <div className="flex items-end justify-between">
-              <div className="flex flex-col">
-                <span className="text-xl font-black text-primary leading-none">
-                  {formatCurrency(rawPrice)}
-                  <span className="text-[10px] text-gray-400 ml-1 font-bold">{isWeighted ? '/ Kg' : '/ Und'}</span>
-                </span>
-                <span className="text-[11px] font-bold text-accent mt-1">
-                  {formatBs(priceInVes)}
-                </span>
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-xl font-black text-primary leading-none">
+                    {formatCurrency(rawPrice)}
+                  </span>
+                  {isWeighted && (
+                    <span className="inline-flex items-center gap-1 bg-amber-500 text-white px-2 py-0.5 rounded-lg text-[7px] font-black uppercase tracking-widest animate-pulse border border-amber-600/20">
+                      <AlertTriangle size={8} /> Referencial
+                    </span>
+                  )}
+                </div>
+                
+                <div className="flex flex-col">
+                  <span className="text-[11px] font-bold text-accent">
+                    {formatBs(priceInVes)}
+                    <span className="text-[9px] text-gray-400 ml-1 font-bold">/ {isWeighted ? 'Kg' : 'Und'}</span>
+                  </span>
+                  {isWeighted && (
+                    <p className="text-[8px] font-black text-amber-600 uppercase tracking-widest mt-1 flex items-center gap-1">
+                      <Scale size={10} /> Sujeto a pesaje final
+                    </p>
+                  )}
+                </div>
               </div>
               
               <button
                 onClick={handleAddToCart}
                 disabled={!product.disponible}
-                className={`p-3 rounded-xl transition-all ${
+                className={`p-3.5 rounded-2xl transition-all ${
                   product.disponible
                     ? 'bg-primary text-white hover:bg-[#2d3a2e] shadow-lg active:scale-90'
                     : 'bg-gray-100 text-gray-300 cursor-not-allowed'
                 }`}
               >
-                <ShoppingCart size={16} />
+                <ShoppingCart size={18} />
               </button>
             </div>
           </div>
@@ -206,10 +220,18 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, exchangeRate }) => {
               <p className="text-gray-500 text-sm leading-relaxed mb-6">
                 {product.descripcion || "No hay descripción adicional disponible."}
               </p>
+              
               <div className="flex items-center justify-between border-t pt-6">
                 <div>
                   <p className="text-xs text-gray-400 font-bold uppercase">Precio</p>
-                  <p className="text-xl font-black text-primary">{formatCurrency(rawPrice)}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-xl font-black text-primary">{formatCurrency(rawPrice)}</p>
+                    {isWeighted && (
+                       <span className="bg-amber-500 text-white px-2 py-0.5 rounded text-[8px] font-black uppercase">
+                        Peso Referencial
+                       </span>
+                    )}
+                  </div>
                 </div>
                 <button 
                   onClick={() => { handleAddToCart(); setShowFullDesc(false); }}
@@ -218,6 +240,20 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, exchangeRate }) => {
                   Agregar <ShoppingCart size={16} />
                 </button>
               </div>
+              
+              {isWeighted && (
+                <div className="mt-6 p-4 bg-amber-50 rounded-2xl border border-amber-100 flex items-start gap-3">
+                  <div className="p-2 bg-white rounded-lg shadow-sm">
+                    <Scale size={18} className="text-amber-600 flex-shrink-0" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-[10px] font-black text-amber-800 uppercase tracking-widest mb-1">Nota de Pesaje</p>
+                    <p className="text-[10px] font-medium text-amber-700 leading-relaxed">
+                      Este producto se factura según su peso exacto. El monto total podría variar ligeramente. Nuestro equipo te contactará para confirmar el peso final tras el pesaje.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
