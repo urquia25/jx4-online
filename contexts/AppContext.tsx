@@ -33,7 +33,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         
         if (Array.isArray(data.departamentos)) {
           setCategories(data.departamentos.map((d: any) => ({
-            nombre: d.NOMBRE || d.nombre || 'General'
+            nombre: d.NOMBRE || d.nombre || 'General',
+            telefono: d.TELEFONO || d.telefono || null
           })));
         }
         

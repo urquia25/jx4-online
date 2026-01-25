@@ -8,7 +8,7 @@ import HomePage from './pages/HomePage';
 import CheckoutPage from './pages/CheckoutPage';
 import MyOrdersPage from './pages/MyOrdersPage';
 import AdminPage from './pages/AdminPage';
-import { ShieldAlert, TrendingUp } from 'lucide-react';
+import { ShieldAlert, TrendingUp, Megaphone } from 'lucide-react';
 
 const Footer: React.FC = () => {
   const { config } = useAppContext();
@@ -41,16 +41,16 @@ const Footer: React.FC = () => {
         </div>
 
         <div>
-          <h4 className="font-black mb-8 uppercase text-[10px] tracking-[0.2em] text-accent">Contacto</h4>
-          <p className="text-sm text-gray-400 mb-6 font-medium italic">Paracotos, Estado Miranda</p>
-          <a href="https://wa.me/584241208234" target="_blank" className="inline-block bg-primary text-white px-8 py-3.5 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg hover:shadow-primary/20 transition-all active:scale-95">
-            Pedir por WhatsApp
+          <h4 className="font-black mb-8 uppercase text-[10px] tracking-[0.2em] text-accent">Publicidad</h4>
+          <p className="text-sm text-gray-400 mb-6 font-medium italic">¿Quieres vender aquí? Impulsa tu marca con nosotros.</p>
+          <a href="https://wa.me/584241208234" target="_blank" className="inline-flex items-center gap-3 bg-primary text-white px-8 py-3.5 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg hover:shadow-primary/20 transition-all active:scale-95">
+            <Megaphone size={14} /> Anuncia tus productos
           </a>
         </div>
       </div>
       
       <div className="max-w-7xl mx-auto px-4 mt-20 pt-8 border-t border-gray-50 flex flex-col md:flex-row justify-between items-center gap-4 text-[9px] text-gray-300 font-black uppercase tracking-[0.2em]">
-        <span>&copy; {new Date().getFullYear()} JX4 Paracotos • v10.0.8</span>
+        <span>&copy; {new Date().getFullYear()} JX4 Paracotos • v10.0.9</span>
         <div className="flex gap-6 italic">
           <span>Distribución Directa</span>
           <Link to="/admin" className="hover:text-primary">Acceso Privado</Link>

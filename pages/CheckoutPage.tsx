@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ShoppingBag, CreditCard, MapPin, Phone, User, Send, ChevronRight, Trash2, Plus, Minus, AlertTriangle } from 'lucide-react';
 import { useCart } from '../contexts/CartContext';
@@ -11,7 +10,7 @@ import { generateWhatsAppMessage } from '../utils/whatsapp';
 
 const CheckoutPage: React.FC = () => {
   const { cart, cartTotal, cartCount, updateQuantity, removeFromCart, clearCart } = useCart();
-  const { config } = useAppContext();
+  const { config, categories } = useAppContext();
   const navigate = useNavigate();
 
   const [loading, setLoading] = useState(false);
@@ -22,6 +21,28 @@ const CheckoutPage: React.FC = () => {
     metodo_pago: 'efectivo' as 'efectivo' | 'transferencia' | 'pago_movil',
     notas: ''
   });
+
+  // Determinar el número de WhatsApp destino según el departamento de los productos
+  const destinationNumber = useMemo(() => {
+    if (cart.length === 0) return config.whatsapp_principal;
+
+    // Buscamos los teléfonos de los departamentos de cada producto en el carrito
+    const deptPhones = cart
+      .map(item => categories.find(c => c.nombre === item.categoria)?.telefono)
+      .filter(phone => !!phone && phone.trim() !== '');
+    
+    // Obtenemos números únicos
+    const uniquePhones = Array.from(new Set(deptPhones));
+    
+    // Si todos los productos pertenecen a departamentos con el mismo número, usamos ese.
+    // Si hay mezcla de departamentos con números distintos, usamos el principal como centralizador.
+    if (uniquePhones.length === 1) {
+      return uniquePhones[0] as string;
+    }
+    
+    // Fallback al número principal
+    return config.whatsapp_principal;
+  }, [cart, categories, config.whatsapp_principal]);
 
   const handlePhoneBlur = async () => {
     if (formData.telefono.length >= 10) {
@@ -62,7 +83,8 @@ const CheckoutPage: React.FC = () => {
         console.warn('Error al respaldar en Supabase, pero GAS fue exitoso:', sbErr);
       }
 
-      const waLink = generateWhatsAppMessage(orderData, config.whatsapp_principal);
+      // Generar link con el número dinámico (del departamento o principal)
+      const waLink = generateWhatsAppMessage(orderData, destinationNumber);
       clearCart();
       window.open(waLink, '_blank');
       navigate('/mis-pedidos');
