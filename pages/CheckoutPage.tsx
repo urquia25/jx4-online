@@ -5,7 +5,6 @@ import { useCart } from '../contexts/CartContext';
 import { useAppContext } from '../contexts/AppContext';
 import { searchCustomer, createOrderInGAS } from '../services/api';
 import { saveOrderToSupabase } from '../services/supabase';
-// Fix: Added missing import for transformDriveUrl
 import { formatCurrency, formatBs, transformDriveUrl } from '../utils/formatters';
 import { generateWhatsAppMessage } from '../utils/whatsapp';
 
@@ -53,14 +52,22 @@ const CheckoutPage: React.FC = () => {
     };
 
     try {
+      // Intentamos guardar en ambos sistemas. GAS es prioritario para el comercio.
       await createOrderInGAS(orderData);
-      await saveOrderToSupabase(orderData);
+      
+      try {
+        await saveOrderToSupabase(orderData);
+      } catch (sbErr) {
+        console.warn('Error al respaldar en Supabase, pero GAS fue exitoso:', sbErr);
+      }
+
       const waLink = generateWhatsAppMessage(orderData, config.whatsapp_principal);
       clearCart();
       window.open(waLink, '_blank');
       navigate('/mis-pedidos');
     } catch (error) {
-      alert('Hubo un error al procesar el pedido. Por favor intenta de nuevo.');
+      console.error('Order Submission Error:', error);
+      alert('Hubo un error al procesar el pedido. Verifica tu conexión e intenta de nuevo.');
     } finally {
       setLoading(false);
     }
@@ -83,7 +90,6 @@ const CheckoutPage: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 pb-20 grid grid-cols-1 lg:grid-cols-2 gap-12 pt-10">
-      {/* Resumen del Carrito */}
       <div>
         <h2 className="text-2xl font-black text-primary mb-8 flex items-center gap-3">
           <ShoppingBag size={28} /> Resumen del Pedido
@@ -96,7 +102,6 @@ const CheckoutPage: React.FC = () => {
               return (
                 <div key={item.id} className="flex items-start gap-4 border-b border-gray-50 pb-6 last:border-0 last:pb-0">
                   <div className="w-16 h-16 bg-offwhite rounded-2xl flex-shrink-0 flex items-center justify-center overflow-hidden border border-gray-50">
-                    {/* Fix: transformDriveUrl is now correctly imported */}
                     <img src={transformDriveUrl(item.imagenurl)} alt="" className="w-full h-full object-cover" 
                       onError={(e) => (e.currentTarget.src = 'https://via.placeholder.com/150')} />
                   </div>
@@ -123,7 +128,7 @@ const CheckoutPage: React.FC = () => {
                         type="number" 
                         step={weighted ? "0.001" : "1"}
                         className="w-14 text-center bg-transparent font-black text-xs outline-none"
-                        value={item.quantity}
+                        value={weighted ? item.quantity.toFixed(2) : item.quantity}
                         onChange={(e) => updateQuantity(item.id, parseFloat(e.target.value) || 0)}
                       />
 
@@ -160,7 +165,6 @@ const CheckoutPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Formulario */}
       <form onSubmit={handleSubmit} className="flex flex-col gap-8">
         <h2 className="text-2xl font-black text-primary flex items-center gap-3">
           <MapPin size={28} /> Finalizar Pedido

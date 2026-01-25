@@ -1,10 +1,10 @@
-
 import { createClient } from '@supabase/supabase-js';
 import { SUPABASE_URL, SUPABASE_KEY } from '../constants';
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 export const saveOrderToSupabase = async (order: any) => {
+  // Nota: Pasamos 'productos' como objeto directo, Supabase maneja la serialización JSONB automáticamente
   const { data, error } = await supabase
     .from('pedidos')
     .insert([
@@ -14,12 +14,15 @@ export const saveOrderToSupabase = async (order: any) => {
         direccion: order.direccion,
         total: order.total,
         metodo_pago: order.metodo_pago,
-        productos: JSON.stringify(order.productos),
+        productos: order.productos, 
         notas: order.notas,
         status: 'Pendiente'
       }
     ]);
-  if (error) throw error;
+  if (error) {
+    console.error('Supabase Insert Error:', error);
+    throw error;
+  }
   return data;
 };
 
@@ -34,7 +37,6 @@ export const fetchOrdersFromSupabase = async (phone?: string) => {
 };
 
 export const updateTasaSupabase = async (newTasa: number) => {
-  // Se cambia 'key' por 'llave' y 'value' por 'valor'
   const { error } = await supabase
     .from('config')
     .upsert({ llave: 'tasa_cambio', valor: newTasa.toString() }, { onConflict: 'llave' });

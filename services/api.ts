@@ -95,3 +95,24 @@ export const updateExchangeRateInGAS = async (newTasa: number) => {
     throw error;
   }
 };
+
+/**
+ * Actualiza el texto del cintillo en GAS
+ */
+export const updateCintilloInGAS = async (newText: string) => {
+  try {
+    const response = await fetch(GAS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ 
+        action: 'actualizar_cintillo', 
+        texto: newText
+      })
+    });
+    if (!response.ok) throw new Error('Error al actualizar el cintillo en JX4 Cloud');
+    return await response.json();
+  } catch (error) {
+    console.error('GAS Update Cintillo Error:', error);
+    throw error;
+  }
+};

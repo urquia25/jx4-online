@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { Product, Config, Category } from '../types';
 import { fetchAppData } from '../services/api';
@@ -20,7 +19,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [products, setProducts] = useState<Product[]>([]);
   const [config, setConfig] = useState<Config>({ tasa_cambio: 36.5, whatsapp_principal: '584241208234' });
   const [categories, setCategories] = useState<Category[]>([]);
-  const [cintillo, setCintillo] = useState('');
+  const [cintillo, setCintillo] = useState('✨ ¡Bienvenidos a JX4 Paracotos! Calidad que se siente en cada bocado. ✨');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -30,28 +29,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const data = await fetchAppData();
       
       if (data) {
-        // 1. Cargar productos
         setProducts(data.productos || []);
         
-        // 2. Mapear Departamentos/Categorías
         if (Array.isArray(data.departamentos)) {
           setCategories(data.departamentos.map((d: any) => ({
             nombre: d.NOMBRE || d.nombre || 'General'
           })));
         }
         
-        // 3. Procesar Cintillo (Primera fila activa según GAS v10.0.3)
+        // Procesar Cintillo
         if (Array.isArray(data.cintillo) && data.cintillo.length > 0) {
           const firstCintillo = data.cintillo[0];
-          setCintillo(firstCintillo.texto || firstCintillo.TEXTO || '');
-        } else {
-          setCintillo('Calidad y confianza en Paracotos.');
+          const texto = firstCintillo.texto || firstCintillo.TEXTO;
+          if (texto) setCintillo(texto);
         }
 
-        // 4. Determinar tasa de cambio definitiva
         let tasaFinal = data.tasa_cambio;
-        
-        // Si la tasa de GAS es sospechosa (default o inválida), intentamos Supabase
         if (tasaFinal === 36.5 || !tasaFinal || isNaN(tasaFinal)) {
           const supabaseTasaStr = await fetchConfigFromSupabase('tasa_cambio');
           if (supabaseTasaStr) {
@@ -72,7 +65,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     } catch (err) {
       console.error('Refresh Error:', err);
-      setError('Error al sincronizar datos con el servidor.');
+      setError('Error al sincronizar datos.');
     } finally {
       setLoading(false);
     }
