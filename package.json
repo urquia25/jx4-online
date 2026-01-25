@@ -1,12 +1,11 @@
-
 {
-  "name": "jx4-catalogo-pedidos",
+  "name": "jx4-online",
   "private": true,
-  "version": "10.0.5",
+  "version": "10.0.6",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "tsc && vite build",
     "preview": "vite preview"
   },
   "dependencies": {
