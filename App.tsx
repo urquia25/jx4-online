@@ -1,7 +1,7 @@
 
 import React from 'react';
-import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AppProvider } from './contexts/AppContext';
+import { HashRouter as Router, Routes, Route, Navigate, Link } from 'react-router-dom';
+import { AppProvider, useAppContext } from './contexts/AppContext';
 import { CartProvider } from './contexts/CartContext';
 import { AuthProvider } from './contexts/AuthContext';
 import Header from './components/Layout/Header';
@@ -9,6 +9,57 @@ import HomePage from './pages/HomePage';
 import CheckoutPage from './pages/CheckoutPage';
 import MyOrdersPage from './pages/MyOrdersPage';
 import AdminPage from './pages/AdminPage';
+import { ShieldAlert, TrendingUp } from 'lucide-react';
+
+const Footer: React.FC = () => {
+  const { config } = useAppContext();
+  
+  return (
+    <footer className="bg-white border-t border-gray-100 pt-20 pb-10">
+      <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-3 gap-16">
+        <div>
+          <h3 className="text-2xl font-black mb-6 text-primary tracking-tighter">JX4 Paracotos</h3>
+          <p className="text-gray-400 leading-relaxed font-medium text-sm">
+            Calidad garantizada en víveres y carnicería. Distribución directa desde el corazón de Paracotos.
+          </p>
+          
+          {/* Tasa de Cambio Minimalista en el Footer */}
+          <div className="mt-8 inline-flex items-center gap-4 bg-offwhite px-5 py-2.5 rounded-2xl border border-gray-50">
+            <TrendingUp size={14} className="text-gray-300" />
+            <div className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">
+              Ref. Día: <span className="text-primary">{config.tasa_cambio} Bs.</span>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <h4 className="font-black mb-8 uppercase text-[10px] tracking-[0.2em] text-accent">Explorar</h4>
+          <ul className="space-y-5 text-[11px] font-bold uppercase tracking-widest text-gray-400">
+            <li><Link to="/" className="hover:text-primary transition-colors">Catálogo Digital</Link></li>
+            <li><Link to="/mis-pedidos" className="hover:text-primary transition-colors">Estado de Pedidos</Link></li>
+            <li><Link to="/admin" className="flex items-center gap-2 hover:text-primary transition-colors"><ShieldAlert size={14}/> Acceso Admin</Link></li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 className="font-black mb-8 uppercase text-[10px] tracking-[0.2em] text-accent">Contacto</h4>
+          <p className="text-sm text-gray-400 mb-6 font-medium italic">Paracotos, Estado Miranda</p>
+          <a href="https://wa.me/584241208234" target="_blank" className="inline-block bg-primary text-white px-8 py-3.5 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg hover:shadow-primary/20 transition-all active:scale-95">
+            Pedir por WhatsApp
+          </a>
+        </div>
+      </div>
+      
+      <div className="max-w-7xl mx-auto px-4 mt-20 pt-8 border-t border-gray-50 flex flex-col md:flex-row justify-between items-center gap-4 text-[9px] text-gray-300 font-black uppercase tracking-[0.2em]">
+        <span>&copy; {new Date().getFullYear()} JX4 Paracotos • v10.0.3</span>
+        <div className="flex gap-6 italic">
+          <span>Diseño Minimalista</span>
+          <Link to="/admin" className="hover:text-primary">Acceso Privado</Link>
+        </div>
+      </div>
+    </footer>
+  );
+};
 
 const App: React.FC = () => {
   return (
@@ -16,7 +67,7 @@ const App: React.FC = () => {
       <AuthProvider>
         <AppProvider>
           <CartProvider>
-            <div className="min-h-screen flex flex-col">
+            <div className="min-h-screen flex flex-col bg-[#fcfcfc]">
               <Header />
               <main className="flex-1">
                 <Routes>
@@ -27,33 +78,7 @@ const App: React.FC = () => {
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
               </main>
-              
-              <footer className="bg-primary text-white py-12 mt-20">
-                <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-3 gap-12">
-                  <div>
-                    <h3 className="text-2xl font-black mb-6">JX4 Paracotos</h3>
-                    <p className="text-primary-foreground/60 leading-relaxed">
-                      Calidad y confianza en cada pedido. Tu catálogo favorito de productos seleccionados.
-                    </p>
-                  </div>
-                  <div>
-                    <h4 className="font-bold mb-4 uppercase text-xs tracking-widest text-accent">Navegación</h4>
-                    <ul className="space-y-2 text-sm">
-                      <li><a href="#/" className="hover:text-accent transition-colors">Inicio</a></li>
-                      <li><a href="#/mis-pedidos" className="hover:text-accent transition-colors">Mis Pedidos</a></li>
-                      <li><a href="#/admin" className="hover:text-accent transition-colors">Administración</a></li>
-                    </ul>
-                  </div>
-                  <div>
-                    <h4 className="font-bold mb-4 uppercase text-xs tracking-widest text-accent">Contacto</h4>
-                    <p className="text-sm text-primary-foreground/60 mb-2">Paracotos, Estado Miranda, Venezuela</p>
-                    <p className="text-lg font-bold">atencion@jx4.com</p>
-                  </div>
-                </div>
-                <div className="max-w-7xl mx-auto px-4 border-t border-white/10 mt-12 pt-8 text-center text-xs text-primary-foreground/40 font-bold uppercase tracking-widest">
-                  &copy; {new Date().getFullYear()} JX4 Paracotos v9.4 - Todos los derechos reservados
-                </div>
-              </footer>
+              <Footer />
             </div>
           </CartProvider>
         </AppProvider>

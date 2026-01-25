@@ -6,6 +6,7 @@ export const SUPABASE_URL = 'https://dpnpnqnvfkwipmgyphmx.supabase.co';
 
 export const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwbnBucW52Zmt3aXBtZ3lwaG14Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg5ODk3NTYsImV4cCI6MjA4NDU2NTc1Nn0.lxGo8CLyhGdBxHgnn8topqy1nPtxTKmaspTZ-G9Sde8';
 
+// Credenciales proporcionadas por el usuario
 export const ADMIN_USER = 'jjtovar1006';
 export const ADMIN_PASS = 'Apamate.25';
 

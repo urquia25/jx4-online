@@ -28,45 +28,51 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setLoading(true);
     try {
       const data = await fetchAppData();
+      
       if (data) {
-        setProducts(data.productos);
+        // 1. Cargar productos
+        setProducts(data.productos || []);
         
+        // 2. Mapear Departamentos/Categorías
         if (Array.isArray(data.departamentos)) {
           setCategories(data.departamentos.map((d: any) => ({
-            nombre: d.NOMBRE || d.nombre || d.Nombre || 'General'
+            nombre: d.NOMBRE || d.nombre || 'General'
           })));
         }
         
-        let tasaFinal = data.tasa_cambio;
-
-        // ESTRATEGIA DE RESPALDO: Si la tasa de GAS es la por defecto (36.5), 
-        // probablemente el script de GAS falló al leer la hoja. Consultamos Supabase.
-        if (tasaFinal === 36.5) {
-          const supabaseTasa = await fetchConfigFromSupabase('tasa_cambio');
-          if (supabaseTasa) {
-            tasaFinal = parseFloat(supabaseTasa);
-          }
-        }
-
-        setConfig({
-          tasa_cambio: tasaFinal,
-          whatsapp_principal: data.config.whatsapp_principal || '584241208234',
-          app_name: data.config.app_name || 'JX4 Paracotos'
-        });
-
+        // 3. Procesar Cintillo (Primera fila activa según GAS v10.0.3)
         if (Array.isArray(data.cintillo) && data.cintillo.length > 0) {
-          setCintillo(data.cintillo[0].texto || data.cintillo[0].TEXTO || '');
+          const firstCintillo = data.cintillo[0];
+          setCintillo(firstCintillo.texto || firstCintillo.TEXTO || '');
         } else {
           setCintillo('Calidad y confianza en Paracotos.');
         }
 
+        // 4. Determinar tasa de cambio definitiva
+        let tasaFinal = data.tasa_cambio;
+        
+        // Si la tasa de GAS es sospechosa (default o inválida), intentamos Supabase
+        if (tasaFinal === 36.5 || !tasaFinal || isNaN(tasaFinal)) {
+          const supabaseTasaStr = await fetchConfigFromSupabase('tasa_cambio');
+          if (supabaseTasaStr) {
+            const parsed = parseFloat(supabaseTasaStr);
+            if (!isNaN(parsed) && parsed > 1) {
+              tasaFinal = parsed;
+            }
+          }
+        }
+
+        setConfig({
+          ...data.config,
+          tasa_cambio: tasaFinal || 36.5,
+          whatsapp_principal: data.config.whatsapp_principal || '584241208234'
+        });
+
         setError(null);
-      } else {
-        throw new Error("Sin datos del servidor");
       }
     } catch (err) {
       console.error('Refresh Error:', err);
-      setError('Error al sincronizar datos.');
+      setError('Error al sincronizar datos con el servidor.');
     } finally {
       setLoading(false);
     }
