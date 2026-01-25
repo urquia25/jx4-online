@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { ShoppingCart } from 'lucide-react';
+import { ShoppingCart, Info } from 'lucide-react';
 import { Product } from '../../types';
 import { useCart } from '../../contexts/CartContext';
 import { transformDriveUrl, formatCurrency, formatBs } from '../../utils/formatters';
@@ -25,11 +25,11 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, exchangeRate }) => {
       ([entry]) => {
         if (entry.isIntersecting) {
           setIsIntersecting(true);
-          observer.disconnect(); // Una vez que es visible, dejamos de observar
+          observer.disconnect();
         }
       },
       {
-        rootMargin: '100px', // Empezamos a cargar 100px antes de que entre al viewport
+        rootMargin: '100px',
         threshold: 0.01
       }
     );
@@ -59,7 +59,6 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, exchangeRate }) => {
       <div className="relative h-48 mb-4 overflow-hidden rounded-inner bg-offwhite flex items-center justify-center">
         {isIntersecting && product.imagenurl ? (
           <>
-            {/* Skeleton/Loader animado mientras carga */}
             {!isLoaded && (
               <div className="absolute inset-0 bg-gray-200 animate-pulse flex items-center justify-center">
                 <span className="text-gray-400 text-xs font-bold uppercase tracking-widest">Cargando...</span>
@@ -93,13 +92,23 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, exchangeRate }) => {
           <p className="text-[10px] text-accent font-bold uppercase tracking-widest mb-1">
             {product.categoria || 'General'}
           </p>
-          <h3 className="text-lg font-bold text-darkText mb-2 line-clamp-2 min-h-[3.5rem]">
+          <h3 className="text-lg font-bold text-darkText mb-1 line-clamp-1">
             {product.nombre}
           </h3>
           
+          {/* Descripción del producto */}
+          <p className="text-xs text-gray-500 mb-4 line-clamp-2 min-h-[2rem]">
+            {product.descripcion || 'Sin descripción disponible.'}
+          </p>
+          
           <div className="mt-auto mb-6">
-            <div className="text-2xl font-black text-primary">
-              {formatCurrency(product.precio)}
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl font-black text-primary">
+                {formatCurrency(product.precio)}
+              </span>
+              <span className="text-[10px] text-gray-400 font-mono">
+                (Ref: {product.precio})
+              </span>
             </div>
             <div className="text-sm text-gray-400 font-medium">
               {formatBs(priceInVes)}
@@ -113,7 +122,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, exchangeRate }) => {
         disabled={!product.disponible}
         className={`w-full py-3.5 rounded-inner font-bold flex items-center justify-center gap-2 transition-all ${
           product.disponible
-            ? 'bg-primary text-white hover:bg-[#2d3a2e] active:scale-95'
+            ? 'bg-primary text-white hover:bg-[#2d3a2e] active:scale-95 shadow-md hover:shadow-lg'
             : 'bg-gray-100 text-gray-400 cursor-not-allowed'
         }`}
       >
