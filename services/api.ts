@@ -6,45 +6,56 @@ export const fetchAppData = async (): Promise<any> => {
   try {
     const response = await fetch(`${GAS_URL}?action=all_data&_t=${Date.now()}`);
     if (!response.ok) throw new Error('Error de red al conectar con JX4 Cloud');
+    
     const result = await response.json();
     
-    // El script v10.0.1 devuelve { success: true, data: { productos: [...], ... } }
     if (result.success && result.data) {
-      console.log('📦 JX4 Cloud Data Received:', result.data);
-      
       const { productos, departamentos, config, cintillo, tasa_cambio } = result.data;
 
-      // Normalizar productos asegurando que los nombres de campos coincidan
+      // Normalización ultra-robusta de productos
       const normalizedProducts: Product[] = (productos || []).map((p: any) => {
-        // El precio puede venir como PRECIO o precio dependiendo de la hoja
-        const rawPrice = p.precio !== undefined ? p.precio : (p.PRECIO !== undefined ? p.PRECIO : 0);
+        const rawPrice = p.precio ?? p.PRECIO ?? p.Precio ?? 0;
         let finalPrice = 0;
         
         if (typeof rawPrice === 'string') {
-          // Limpiar símbolos de moneda y convertir a número
           finalPrice = parseFloat(rawPrice.replace(/[^\d.-]/g, '')) || 0;
         } else {
           finalPrice = parseFloat(rawPrice) || 0;
         }
 
+        const rawImg = p.imagenurl ?? p.ImagenURL ?? p.ImagenURL_Publica ?? p.IMAGENURL ?? '';
+
         return {
-          id: String(p.id || p.ID || ''),
-          nombre: String(p.nombre || p.NOMBRE || 'Producto sin nombre'),
+          id: String(p.id ?? p.ID ?? ''),
+          nombre: String(p.nombre ?? p.NOMBRE ?? 'Producto sin nombre'),
           precio: finalPrice,
-          categoria: String(p.categoria || p.CATEGORIA || 'General'),
-          descripcion: String(p.descripcion || p.DESCRIPCION || ''),
-          imagenurl: String(p.imagenurl || p.ImagenURL || p.ImagenURL_Publica || ''),
-          disponible: p.disponible !== undefined ? Boolean(p.disponible) : true,
-          departamento_id: String(p.departamento || p.DEPARTAMENTO || '')
+          categoria: String(p.categoria ?? p.CATEGORIA ?? p.DEPARTAMENTO ?? 'General'),
+          descripcion: String(p.descripcion ?? p.DESCRIPCION ?? ''),
+          imagenurl: String(rawImg),
+          disponible: !(p.disponible === false || p.ACTIVO === 'NO' || p.activo === 'no'),
+          departamento_id: String(p.departamento ?? p.DEPARTAMENTO ?? '')
         };
       }).filter((p: Product) => p.nombre && p.nombre !== 'Producto sin nombre');
+
+      // Intentar extraer la tasa de cambio de cualquier propiedad posible en config
+      let extractedTasa = parseFloat(tasa_cambio);
+      if (config && isNaN(extractedTasa) || extractedTasa === 36.5) {
+        // Buscar en el objeto config por diversas llaves
+        const possibleKeys = ['tasa_cambio', 'tasa', 'TASA', 'TASA_CAMBIO', 'VALOR'];
+        for (const key of possibleKeys) {
+          if (config[key]) {
+            extractedTasa = parseFloat(config[key]);
+            break;
+          }
+        }
+      }
 
       return {
         productos: normalizedProducts,
         departamentos: departamentos || [],
         config: config || {},
         cintillo: cintillo || [],
-        tasa_cambio: parseFloat(tasa_cambio) || 36.5
+        tasa_cambio: isNaN(extractedTasa) ? 36.5 : extractedTasa
       };
     }
     throw new Error('Estructura de respuesta inválida');
@@ -68,7 +79,7 @@ export const createOrderInGAS = async (order: Order) => {
   try {
     const response = await fetch(GAS_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'text/plain' }, // Evita preflight OPTIONS innecesarios en GAS
       body: JSON.stringify({ 
         action: 'crear_pedido', 
         telefono: order.telefono,
@@ -92,12 +103,11 @@ export const createOrderInGAS = async (order: Order) => {
   }
 };
 
-// Fix: Add missing updateExchangeRateInGAS function used in AdminPage.tsx
 export const updateExchangeRateInGAS = async (newTasa: number, user: string, pass: string) => {
   try {
     const response = await fetch(GAS_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify({ 
         action: 'actualizar_tasa', 
         tasa: newTasa,

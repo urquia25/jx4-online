@@ -36,6 +36,21 @@ export const fetchOrdersFromSupabase = async (phone?: string) => {
 export const updateTasaSupabase = async (newTasa: number) => {
   const { error } = await supabase
     .from('config')
-    .upsert({ key: 'tasa_cambio', value: newTasa.toString() });
+    .upsert({ key: 'tasa_cambio', value: newTasa.toString() }, { onConflict: 'key' });
   if (error) throw error;
+};
+
+export const fetchConfigFromSupabase = async (key: string): Promise<string | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('config')
+      .select('value')
+      .eq('key', key)
+      .single();
+    
+    if (error) return null;
+    return data?.value || null;
+  } catch (e) {
+    return null;
+  }
 };

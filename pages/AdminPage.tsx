@@ -4,8 +4,7 @@ import { LayoutDashboard, TrendingUp, History, ShieldAlert, LogOut, RefreshCw, C
 import { useAuth } from '../contexts/AuthContext';
 import { useAppContext } from '../contexts/AppContext';
 import { updateExchangeRateInGAS } from '../services/api';
-import { updateTasaSupabase, fetchOrdersFromSupabase, supabase } from '../services/supabase';
-// Import admin credentials from constants to satisfy API requirements
+import { updateTasaSupabase, fetchOrdersFromSupabase } from '../services/supabase';
 import { ADMIN_USER, ADMIN_PASS } from '../constants';
 
 const AdminPage: React.FC = () => {
@@ -22,8 +21,9 @@ const AdminPage: React.FC = () => {
   useEffect(() => {
     if (isAdmin) {
       loadStats();
+      if (config?.tasa_cambio) setNewTasa(config.tasa_cambio);
     }
-  }, [isAdmin]);
+  }, [isAdmin, config?.tasa_cambio]);
 
   const loadStats = async () => {
     try {
@@ -45,15 +45,26 @@ const AdminPage: React.FC = () => {
   };
 
   const handleUpdateTasa = async () => {
+    if (isNaN(newTasa) || newTasa <= 0) {
+      alert('Por favor ingresa una tasa válida.');
+      return;
+    }
+
     setUpdating(true);
     try {
-      // Fix: Pass ADMIN_USER and ADMIN_PASS to satisfy the function signature in services/api.ts
-      await updateExchangeRateInGAS(newTasa, ADMIN_USER, ADMIN_PASS);
+      // 1. Intentar actualizar GAS (Hoja de Cálculo)
+      const gasResult = await updateExchangeRateInGAS(newTasa, ADMIN_USER, ADMIN_PASS);
+      
+      // 2. Actualizar Supabase (Nuestra fuente de verdad secundaria confiable)
       await updateTasaSupabase(newTasa);
+      
+      // 3. Refrescar datos globales
       await refreshData();
-      alert('Tasa actualizada exitosamente');
+      
+      alert('Tasa actualizada exitosamente en todos los sistemas.');
     } catch (error) {
-      alert('Error al actualizar tasa');
+      console.error('Error updating rate:', error);
+      alert('Error al actualizar tasa. Verifique su conexión.');
     } finally {
       setUpdating(false);
     }
@@ -91,8 +102,6 @@ const AdminPage: React.FC = () => {
     );
   }
 
-  const safeProducts = Array.isArray(products) ? products : [];
-
   return (
     <div className="max-w-7xl mx-auto px-4 pb-20">
       <div className="flex flex-col md:flex-row justify-between items-center gap-6 mb-12">
@@ -109,10 +118,10 @@ const AdminPage: React.FC = () => {
           <div>
             <p className="text-primary-foreground/60 font-bold uppercase tracking-widest text-xs mb-4">Ventas Totales</p>
             <h3 className="text-4xl font-black mb-2">${stats.totalRevenue.toFixed(2)}</h3>
-            <p className="text-sm opacity-80">{stats.totalOrders} pedidos realizados</p>
+            <p className="text-sm opacity-80">{stats.totalOrders} pedidos registrados</p>
           </div>
           <div className="mt-8 pt-8 border-t border-white/10 flex justify-between items-center">
-            <span className="text-xs font-bold bg-white/10 px-3 py-1 rounded-full">{safeProducts.length} productos</span>
+            <span className="text-xs font-bold bg-white/10 px-3 py-1 rounded-full">{products.length} productos</span>
             <CheckCircle className="text-accent" size={24} />
           </div>
         </div>
@@ -176,7 +185,7 @@ const AdminPage: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {Array.isArray(logs) && logs.map(log => (
+              {logs.map(log => (
                 <tr key={log.id} className="text-sm hover:bg-offwhite transition-colors">
                   <td className="py-4">
                     <div className="font-bold text-primary">{log.nombre}</div>

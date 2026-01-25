@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { Product, Config, Category } from '../types';
 import { fetchAppData } from '../services/api';
+import { fetchConfigFromSupabase } from '../services/supabase';
 
 interface AppContextType {
   products: Product[];
@@ -32,12 +33,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         
         if (Array.isArray(data.departamentos)) {
           setCategories(data.departamentos.map((d: any) => ({
-            nombre: d.NOMBRE || d.nombre || 'General'
+            nombre: d.NOMBRE || d.nombre || d.Nombre || 'General'
           })));
         }
         
+        let tasaFinal = data.tasa_cambio;
+
+        // ESTRATEGIA DE RESPALDO: Si la tasa de GAS es la por defecto (36.5), 
+        // probablemente el script de GAS falló al leer la hoja. Consultamos Supabase.
+        if (tasaFinal === 36.5) {
+          const supabaseTasa = await fetchConfigFromSupabase('tasa_cambio');
+          if (supabaseTasa) {
+            tasaFinal = parseFloat(supabaseTasa);
+          }
+        }
+
         setConfig({
-          tasa_cambio: data.tasa_cambio,
+          tasa_cambio: tasaFinal,
           whatsapp_principal: data.config.whatsapp_principal || '584241208234',
           app_name: data.config.app_name || 'JX4 Paracotos'
         });
@@ -50,11 +62,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
         setError(null);
       } else {
-        throw new Error("Respuesta de datos inválida del servidor");
+        throw new Error("Sin datos del servidor");
       }
     } catch (err) {
-      console.error('Error en refreshData:', err);
-      setError('No se pudo sincronizar con JX4 Cloud. Verifique su conexión.');
+      console.error('Refresh Error:', err);
+      setError('Error al sincronizar datos.');
     } finally {
       setLoading(false);
     }
