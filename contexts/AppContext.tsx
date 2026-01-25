@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { Product, Config, Category } from '../types';
 import { fetchAppData } from '../services/api';
+import { parsePrice } from '../utils/formatters';
 
 interface AppContextType {
   products: Product[];
@@ -28,19 +29,31 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     try {
       const data = await fetchAppData();
       if (data) {
-        // En v9.4.1, los datos vienen directamente bajo la propiedad data que ya extraemos en services/api.ts
-        setProducts(Array.isArray(data.productos) ? data.productos : []);
+        // Mapeo exhaustivo para coincidir con las columnas de Google Sheets proporcionadas
+        const mappedProducts: Product[] = (Array.isArray(data.productos) ? data.productos : []).map((p: any) => ({
+          id: p.id || p.ID || '',
+          nombre: p.nombre || p.Nombre || 'Sin nombre',
+          precio: parsePrice(p.precio || p.Precio),
+          categoria: p.categoria || p.Categoria || 'General',
+          descripcion: p.descripcion || p.Descripcion || '',
+          imagenurl: p.imagenurl || p.ImagenURL || '',
+          imagenurl_publica: p.imagenurl_publica || p.ImagenURL_Publica || '',
+          departamento: p.departamento || p.Departamento || '',
+          // Convertimos 'si' o 'SI' a booleano true
+          disponible: String(p.disponible || p.Disponible || '').toLowerCase().trim() === 'si'
+        }));
+
+        setProducts(mappedProducts);
         setCategories(Array.isArray(data.departamentos) ? data.departamentos : []);
         
         if (data.config) {
           setConfig({
-            tasa_cambio: parseFloat(data.config.tasa_cambio || data.tasa_cambio || 1),
+            tasa_cambio: parsePrice(data.config.tasa_cambio || data.tasa_cambio || 1),
             whatsapp_principal: data.config.whatsapp_principal || '',
             moneda: data.config.moneda || 'USD'
           });
         }
 
-        // El cintillo en GAS puede ser un array de objetos activos
         if (Array.isArray(data.cintillo) && data.cintillo.length > 0) {
           setCintillo(data.cintillo[0].texto || '');
         } else {
