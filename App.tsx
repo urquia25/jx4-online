@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { HashRouter as Router, Routes, Route, Navigate, Link } from 'react-router-dom';
 import { AppProvider, useAppContext } from './contexts/AppContext';
@@ -19,8 +18,8 @@ const Footer: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-3 gap-16">
         <div>
           <h3 className="text-2xl font-black mb-6 text-primary tracking-tighter">JX4 Paracotos</h3>
-          <p className="text-gray-400 leading-relaxed font-medium text-sm">
-            Calidad garantizada en víveres y carnicería. Distribución directa desde el corazón de Paracotos.
+          <p className="text-primary font-bold leading-relaxed text-sm">
+            Desde el corazón de Paracotos, los productos que necesitas.
           </p>
           
           {/* Tasa de Cambio Minimalista en el Footer */}
@@ -51,9 +50,9 @@ const Footer: React.FC = () => {
       </div>
       
       <div className="max-w-7xl mx-auto px-4 mt-20 pt-8 border-t border-gray-50 flex flex-col md:flex-row justify-between items-center gap-4 text-[9px] text-gray-300 font-black uppercase tracking-[0.2em]">
-        <span>&copy; {new Date().getFullYear()} JX4 Paracotos • v10.0.3</span>
+        <span>&copy; {new Date().getFullYear()} JX4 Paracotos • v10.0.8</span>
         <div className="flex gap-6 italic">
-          <span>Diseño Minimalista</span>
+          <span>Distribución Directa</span>
           <Link to="/admin" className="hover:text-primary">Acceso Privado</Link>
         </div>
       </div>
