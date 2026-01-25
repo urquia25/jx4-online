@@ -5,6 +5,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { useAppContext } from '../contexts/AppContext';
 import { updateExchangeRateInGAS } from '../services/api';
 import { updateTasaSupabase, fetchOrdersFromSupabase, supabase } from '../services/supabase';
+// Import admin credentials from constants to satisfy API requirements
+import { ADMIN_USER, ADMIN_PASS } from '../constants';
 
 const AdminPage: React.FC = () => {
   const { isAdmin, login, logout } = useAuth();
@@ -45,7 +47,8 @@ const AdminPage: React.FC = () => {
   const handleUpdateTasa = async () => {
     setUpdating(true);
     try {
-      await updateExchangeRateInGAS(newTasa);
+      // Fix: Pass ADMIN_USER and ADMIN_PASS to satisfy the function signature in services/api.ts
+      await updateExchangeRateInGAS(newTasa, ADMIN_USER, ADMIN_PASS);
       await updateTasaSupabase(newTasa);
       await refreshData();
       alert('Tasa actualizada exitosamente');

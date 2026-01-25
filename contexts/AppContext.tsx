@@ -2,7 +2,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { Product, Config, Category } from '../types';
 import { fetchAppData } from '../services/api';
-import { parsePrice } from '../utils/formatters';
 
 interface AppContextType {
   products: Product[];
@@ -18,7 +17,7 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [products, setProducts] = useState<Product[]>([]);
-  const [config, setConfig] = useState<Config>({ tasa_cambio: 1, whatsapp_principal: '', moneda: 'USD' });
+  const [config, setConfig] = useState<Config>({ tasa_cambio: 36.5, whatsapp_principal: '584241208234' });
   const [categories, setCategories] = useState<Category[]>([]);
   const [cintillo, setCintillo] = useState('');
   const [loading, setLoading] = useState(true);
@@ -29,46 +28,33 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     try {
       const data = await fetchAppData();
       if (data) {
-        // Mapeo adaptado a la estructura de columnas compartida:
-        // Col A: ID, Col B: Nombre, Col C: Precio, Col D: Categoria, 
-        // Col E: Descripcion, Col F: ImagenURL, Col G: ImagenURL_Publica
-        // Col H: Departamento, Col I: Disponible
-        const mappedProducts: Product[] = (Array.isArray(data.productos) ? data.productos : []).map((p: any) => ({
-          id: p.id || p.ID || '',
-          nombre: p.nombre || p.Nombre || 'Sin nombre', // Columna B
-          precio: parsePrice(p.precio || p.Precio),    // Columna C
-          categoria: p.categoria || p.Categoria || 'General', // Columna D
-          descripcion: p.descripcion || p.Descripcion || '', // Columna E
-          imagenurl: p.imagenurl || p.ImagenURL || '', // Columna F
-          imagenurl_publica: p.imagenurl_publica || p.ImagenURL_Publica || '', // Columna G
-          departamento: p.departamento || p.Departamento || '',
-          disponible: String(p.disponible || p.Disponible || '').toLowerCase().trim() === 'si'
-        }));
-
-        setProducts(mappedProducts);
-        setCategories(Array.isArray(data.departamentos) ? data.departamentos : []);
+        setProducts(data.productos);
         
-        if (data.config) {
-          setConfig({
-            tasa_cambio: parsePrice(data.config.tasa_cambio || data.tasa_cambio || 1),
-            whatsapp_principal: data.config.whatsapp_principal || '',
-            moneda: data.config.moneda || 'USD'
-          });
+        if (Array.isArray(data.departamentos)) {
+          setCategories(data.departamentos.map((d: any) => ({
+            nombre: d.NOMBRE || d.nombre || 'General'
+          })));
         }
+        
+        setConfig({
+          tasa_cambio: data.tasa_cambio,
+          whatsapp_principal: data.config.whatsapp_principal || '584241208234',
+          app_name: data.config.app_name || 'JX4 Paracotos'
+        });
 
         if (Array.isArray(data.cintillo) && data.cintillo.length > 0) {
-          setCintillo(data.cintillo[0].texto || data.cintillo[0].Texto || '');
+          setCintillo(data.cintillo[0].texto || data.cintillo[0].TEXTO || '');
         } else {
-          setCintillo('');
+          setCintillo('Calidad y confianza en Paracotos.');
         }
 
         setError(null);
       } else {
-        throw new Error("No se recibieron datos del servidor.");
+        throw new Error("Respuesta de datos inválida del servidor");
       }
     } catch (err) {
-      console.error('refreshData error:', err);
-      setError('Error al conectar con la base de datos.');
+      console.error('Error en refreshData:', err);
+      setError('No se pudo sincronizar con JX4 Cloud. Verifique su conexión.');
     } finally {
       setLoading(false);
     }

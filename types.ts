@@ -6,26 +6,32 @@ export interface Product {
   categoria: string;
   descripcion: string;
   imagenurl: string;
-  imagenurl_publica?: string;
-  departamento?: string;
+  departamento_id?: string;
   disponible: boolean;
 }
 
 export interface Config {
   tasa_cambio: number;
   whatsapp_principal: string;
-  moneda: string;
-  cintillo?: string;
+  app_name?: string;
+  admin_user?: string;
+  admin_pass?: string;
+  [key: string]: any;
+}
+
+export interface Category {
+  id?: string;
+  nombre: string;
+  telefono?: string;
+}
+
+export interface Cintillo {
+  texto: string;
+  tipo: string;
 }
 
 export interface CartItem extends Product {
   quantity: number;
-}
-
-export interface Customer {
-  telefono: string;
-  nombre: string;
-  direccion: string;
 }
 
 export interface Order {
@@ -40,16 +46,4 @@ export interface Order {
   notas: string;
   fecha?: string;
   status?: string;
-}
-
-export interface Category {
-  id: string;
-  nombre: string;
-}
-
-export interface AppData {
-  productos: Product[];
-  config: Config;
-  departamentos: Category[];
-  cintillo: string;
 }

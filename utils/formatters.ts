@@ -1,64 +1,47 @@
 
-export const formatCurrency = (amount: number, currency: string = 'USD') => {
+export const formatCurrency = (amount: number | string, currency: string = 'USD') => {
+  const value = typeof amount === 'string' ? parseFloat(amount) : amount;
+  if (isNaN(value)) return '$ 0,00';
+  
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: currency,
-  }).format(amount);
+  }).format(value);
 };
 
-export const formatBs = (amount: number) => {
-  return `Bs. ${amount.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+export const formatBs = (amount: number | string) => {
+  const value = typeof amount === 'string' ? parseFloat(amount) : amount;
+  if (isNaN(value)) return 'Bs. 0,00';
+
+  return `Bs. ${value.toLocaleString('es-VE', { 
+    minimumFractionDigits: 2, 
+    maximumFractionDigits: 2 
+  })}`;
 };
 
-/**
- * Convierte un string de precio (ej: "1,5") a un número válido (1.5)
- */
-export const parsePrice = (price: any): number => {
-  if (typeof price === 'number') return price;
-  if (!price) return 0;
-  // Reemplaza coma por punto y elimina caracteres no numéricos excepto el punto
-  const cleaned = String(price).replace(',', '.').replace(/[^\d.]/g, '');
-  const parsed = parseFloat(cleaned);
-  return isNaN(parsed) ? 0 : parsed;
-};
-
-/**
- * Extrae el ID de un archivo de Google Drive desde cualquier formato de URL conocido.
- */
-export const extractDriveId = (url: string): string | null => {
-  if (!url) return null;
-  
-  // Patrón 1: /file/d/ID/...
-  const driveIdRegex1 = /\/file\/d\/([a-zA-Z0-9_-]{25,})/;
-  // Patrón 2: id=ID
-  const driveIdRegex2 = /[?&]id=([a-zA-Z0-9_-]{25,})/;
-  // Patrón 3: uc?id=ID
-  const driveIdRegex3 = /uc\?id=([a-zA-Z0-9_-]{25,})/;
-
-  const match1 = url.match(driveIdRegex1);
-  if (match1) return match1[1];
-
-  const match2 = url.match(driveIdRegex2);
-  if (match2) return match2[1];
-
-  const match3 = url.match(driveIdRegex3);
-  if (match3) return match3[1];
-
-  return null;
-};
-
-/**
- * Transforma URLs de Google Drive en enlaces de imagen directa fiables.
- */
 export const transformDriveUrl = (url: string): string => {
   if (!url) return '';
   
-  const fileId = extractDriveId(url);
+  // Si ya es una URL de previsualización directa (uc?export=view&id=) o de contenido (lh3)
+  if (url.includes('googleusercontent.com/d/') || url.includes('drive.google.com/uc')) {
+    // Si ya tiene el ID, extraerlo para asegurar el formato lh3 que es más rápido
+    const idMatch = url.match(/[?&]id=([a-zA-Z0-9_-]{25,})/) || url.match(/\/d\/([a-zA-Z0-9_-]{25,})/);
+    if (idMatch) return `https://lh3.googleusercontent.com/d/${idMatch[1]}`;
+    return url;
+  }
+
+  // Soporte para formato /file/d/ID/view
+  const driveRegex = /\/file\/d\/([a-zA-Z0-9_-]{25,})/;
+  const idRegex = /[?&]id=([a-zA-Z0-9_-]{25,})/;
+
+  const matchDrive = url.match(driveRegex);
+  const matchId = url.match(idRegex);
+  
+  const fileId = (matchDrive && matchDrive[1]) || (matchId && matchId[1]);
+
   if (fileId) {
-    // Este subdominio es mucho más permisivo con el hotlinking que uc?id=
     return `https://lh3.googleusercontent.com/d/${fileId}`;
   }
 
-  // Si no es un enlace de Drive reconocible pero es una URL absoluta, devolverla tal cual
   return url.startsWith('http') ? url : '';
 };
