@@ -39,7 +39,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, exchangeRate }) => {
       </div>
       
       {/* Image Container */}
-      <div className="relative h-48 mb-6 overflow-hidden rounded-2xl bg-offwhite flex items-center justify-center border border-gray-50">
+      <div className="relative h-48 mb-6 overflow-hidden rounded-2xl bg-offwhite flex items-center justify-center border border-gray-50 p-2">
         {!imgError && imageUrl ? (
           <>
             {!isLoaded && (
@@ -52,7 +52,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, exchangeRate }) => {
               alt={product.nombre}
               onLoad={() => setIsLoaded(true)}
               onError={() => setImgError(true)}
-              className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000 ease-out ${
+              className={`w-full h-full object-contain mix-blend-multiply group-hover:scale-110 transition-transform duration-1000 ease-out ${
                 isLoaded ? 'opacity-100' : 'opacity-0'
               }`}
             />
@@ -127,8 +127,8 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, exchangeRate }) => {
       {showFullDesc && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-300">
           <div className="bg-white rounded-[2rem] w-full max-w-sm overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300">
-            <div className="relative h-40 bg-offwhite">
-               <img src={imageUrl} alt={product.nombre} className="w-full h-full object-cover" />
+            <div className="relative h-64 bg-offwhite p-4">
+               <img src={imageUrl} alt={product.nombre} className="w-full h-full object-contain mix-blend-multiply" />
                <button 
                 onClick={() => setShowFullDesc(false)}
                 className="absolute top-4 right-4 p-2 bg-black/20 hover:bg-black/40 text-white rounded-full transition-colors"

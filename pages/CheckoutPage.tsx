@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ShoppingBag, CreditCard, MapPin, Phone, User, Send, ChevronRight, Trash2, Plus, Minus, AlertTriangle } from 'lucide-react';
@@ -101,8 +102,8 @@ const CheckoutPage: React.FC = () => {
               const weighted = isWeighted(item);
               return (
                 <div key={item.id} className="flex items-start gap-4 border-b border-gray-50 pb-6 last:border-0 last:pb-0">
-                  <div className="w-16 h-16 bg-offwhite rounded-2xl flex-shrink-0 flex items-center justify-center overflow-hidden border border-gray-50">
-                    <img src={transformDriveUrl(item.imagenurl)} alt="" className="w-full h-full object-cover" 
+                  <div className="w-16 h-16 bg-offwhite rounded-2xl flex-shrink-0 flex items-center justify-center overflow-hidden border border-gray-50 p-1">
+                    <img src={transformDriveUrl(item.imagenurl)} alt="" className="w-full h-full object-contain mix-blend-multiply" 
                       onError={(e) => (e.currentTarget.src = 'https://via.placeholder.com/150')} />
                   </div>
                   <div className="flex-1">
