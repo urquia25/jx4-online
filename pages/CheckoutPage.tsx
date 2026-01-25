@@ -91,7 +91,7 @@ const CheckoutPage: React.FC = () => {
           {cart.map(item => (
             <div key={item.id} className="flex items-center gap-4 border-b border-gray-50 pb-4">
               <div className="w-16 h-16 bg-offwhite rounded-xl flex-shrink-0 flex items-center justify-center">
-                {item.nombre.charAt(0)}
+                {(item.nombre || '?').charAt(0)}
               </div>
               <div className="flex-1">
                 <h4 className="font-bold text-primary">{item.nombre}</h4>

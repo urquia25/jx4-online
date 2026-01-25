@@ -27,19 +27,33 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setLoading(true);
     try {
       const data = await fetchAppData();
-      // Validación estricta para asegurar que siempre sean arreglos
-      setProducts(Array.isArray(data?.productos) ? data.productos : []);
-      if (data?.config) {
-        setConfig(data.config);
+      if (data) {
+        // En v9.4.1, los datos vienen directamente bajo la propiedad data que ya extraemos en services/api.ts
+        setProducts(Array.isArray(data.productos) ? data.productos : []);
+        setCategories(Array.isArray(data.departamentos) ? data.departamentos : []);
+        
+        if (data.config) {
+          setConfig({
+            tasa_cambio: parseFloat(data.config.tasa_cambio || data.tasa_cambio || 1),
+            whatsapp_principal: data.config.whatsapp_principal || '',
+            moneda: data.config.moneda || 'USD'
+          });
+        }
+
+        // El cintillo en GAS puede ser un array de objetos activos
+        if (Array.isArray(data.cintillo) && data.cintillo.length > 0) {
+          setCintillo(data.cintillo[0].texto || '');
+        } else {
+          setCintillo('');
+        }
+
+        setError(null);
+      } else {
+        throw new Error("No se recibieron datos válidos del servidor.");
       }
-      setCategories(Array.isArray(data?.departamentos) ? data.departamentos : []);
-      setCintillo(data?.cintillo || '');
-      setError(null);
     } catch (err) {
       console.error('refreshData error:', err);
-      setError('Fallo al cargar datos del catálogo. Por favor intenta de nuevo.');
-      setProducts([]);
-      setCategories([]);
+      setError('Error al cargar datos. Verifica tu conexión.');
     } finally {
       setLoading(false);
     }
@@ -51,9 +65,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   return (
     <AppContext.Provider value={{ 
-      products: products || [], 
+      products, 
       config, 
-      categories: categories || [], 
+      categories, 
       loading, 
       error, 
       refreshData, 

@@ -41,7 +41,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, exchangeRate }) => {
         ) : (
           <div className="w-full h-full bg-gradient-to-br from-primary to-accent flex items-center justify-center">
             <span className="text-white text-4xl font-bold">
-              {product.nombre.charAt(0)}
+              {(product.nombre || '?').charAt(0)}
             </span>
           </div>
         )}
