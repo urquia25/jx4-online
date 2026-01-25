@@ -29,17 +29,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     try {
       const data = await fetchAppData();
       if (data) {
-        // Mapeo exhaustivo para coincidir con las columnas de Google Sheets proporcionadas
+        // Mapeo adaptado a la estructura de columnas compartida:
+        // Col A: ID, Col B: Nombre, Col C: Precio, Col D: Categoria, 
+        // Col E: Descripcion, Col F: ImagenURL, Col G: ImagenURL_Publica
+        // Col H: Departamento, Col I: Disponible
         const mappedProducts: Product[] = (Array.isArray(data.productos) ? data.productos : []).map((p: any) => ({
           id: p.id || p.ID || '',
-          nombre: p.nombre || p.Nombre || 'Sin nombre',
-          precio: parsePrice(p.precio || p.Precio),
-          categoria: p.categoria || p.Categoria || 'General',
-          descripcion: p.descripcion || p.Descripcion || '',
-          imagenurl: p.imagenurl || p.ImagenURL || '',
-          imagenurl_publica: p.imagenurl_publica || p.ImagenURL_Publica || '',
+          nombre: p.nombre || p.Nombre || 'Sin nombre', // Columna B
+          precio: parsePrice(p.precio || p.Precio),    // Columna C
+          categoria: p.categoria || p.Categoria || 'General', // Columna D
+          descripcion: p.descripcion || p.Descripcion || '', // Columna E
+          imagenurl: p.imagenurl || p.ImagenURL || '', // Columna F
+          imagenurl_publica: p.imagenurl_publica || p.ImagenURL_Publica || '', // Columna G
           departamento: p.departamento || p.Departamento || '',
-          // Convertimos 'si' o 'SI' a booleano true
           disponible: String(p.disponible || p.Disponible || '').toLowerCase().trim() === 'si'
         }));
 
@@ -55,18 +57,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
 
         if (Array.isArray(data.cintillo) && data.cintillo.length > 0) {
-          setCintillo(data.cintillo[0].texto || '');
+          setCintillo(data.cintillo[0].texto || data.cintillo[0].Texto || '');
         } else {
           setCintillo('');
         }
 
         setError(null);
       } else {
-        throw new Error("No se recibieron datos válidos del servidor.");
+        throw new Error("No se recibieron datos del servidor.");
       }
     } catch (err) {
       console.error('refreshData error:', err);
-      setError('Error al cargar datos. Verifica tu conexión.');
+      setError('Error al conectar con la base de datos.');
     } finally {
       setLoading(false);
     }

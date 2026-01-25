@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ShoppingCart } from 'lucide-react';
 import { Product } from '../../types';
 import { useCart } from '../../contexts/CartContext';
@@ -12,42 +12,25 @@ interface ProductCardProps {
 
 const ProductCard: React.FC<ProductCardProps> = ({ product, exchangeRate }) => {
   const { addToCart } = useCart();
-  const [isIntersecting, setIsIntersecting] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
   const [imgError, setImgError] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
   
   const priceInVes = product.precio * exchangeRate;
   
-  // Priorizar ImagenURL_Publica si existe, de lo contrario usar ImagenURL procesada
-  const rawImageUrl = product.imagenurl_publica || product.imagenurl;
-  const imageUrl = transformDriveUrl(rawImageUrl);
+  // Usamos el transformador mejorado sobre la URL pública o la original
+  const rawUrl = product.imagenurl_publica || product.imagenurl;
+  const imageUrl = transformDriveUrl(rawUrl);
 
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsIntersecting(true);
-          observer.disconnect();
-        }
-      },
-      { rootMargin: '150px', threshold: 0.01 }
-    );
-
-    if (containerRef.current) observer.observe(containerRef.current);
-    return () => observer.disconnect();
-  }, []);
-
-  const hasDescription = product.descripcion && product.descripcion.trim() !== "" && product.descripcion !== "gdgd";
-  const showPlaceholder = !rawImageUrl || imgError;
+  const hasDescription = product.descripcion && 
+                         product.descripcion.trim() !== "" && 
+                         product.descripcion.toLowerCase() !== "gdgd";
+  
+  const showPlaceholder = !imageUrl || imgError;
 
   return (
-    <div 
-      ref={containerRef}
-      className="group relative bg-white rounded-custom p-6 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 flex flex-col h-full border border-transparent hover:border-gray-100"
-    >
+    <div className="group relative bg-white rounded-custom p-6 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 flex flex-col h-full border border-transparent hover:border-gray-100">
       {/* Badge de disponibilidad */}
-      <div className={`absolute top-4 right-4 px-3 py-1 rounded-full text-[10px] uppercase tracking-wider font-black z-10 shadow-sm ${
+      <div className={`absolute top-4 right-4 px-3 py-1 rounded-full text-[10px] uppercase tracking-wider font-black z-20 shadow-sm ${
         product.disponible 
           ? 'bg-green-100 text-green-800' 
           : 'bg-red-100 text-red-800'
@@ -57,7 +40,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, exchangeRate }) => {
       
       {/* Contenedor de Imagen */}
       <div className="relative h-52 mb-5 overflow-hidden rounded-inner bg-offwhite flex items-center justify-center">
-        {isIntersecting && !showPlaceholder ? (
+        {!showPlaceholder ? (
           <>
             {!isLoaded && (
               <div className="absolute inset-0 bg-gray-100 animate-pulse flex items-center justify-center">
@@ -68,18 +51,17 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, exchangeRate }) => {
               src={imageUrl}
               alt={product.nombre}
               onLoad={() => setIsLoaded(true)}
-              className={`w-full h-full object-cover group-hover:scale-110 transition-all duration-1000 ease-out ${
+              className={`w-full h-full object-cover group-hover:scale-110 transition-all duration-700 ease-out ${
                 isLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
               }`}
-              loading="lazy"
               onError={() => {
+                console.error(`Error de carga en: ${product.nombre} - URL: ${imageUrl}`);
                 setImgError(true);
-                setIsLoaded(true);
               }}
             />
           </>
         ) : (
-          <div className="w-full h-full bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-inner">
+          <div className="w-full h-full bg-gradient-to-br from-primary to-accent flex items-center justify-center">
             <span className="text-white text-5xl font-black uppercase tracking-tighter drop-shadow-md">
               {(product.nombre || '?').charAt(0)}
             </span>
@@ -89,17 +71,14 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, exchangeRate }) => {
       
       {/* Información del Producto */}
       <div className="flex-1 flex flex-col">
-          <div className="flex items-center justify-between mb-1">
-            <p className="text-[10px] text-accent font-black uppercase tracking-widest">
-              {product.categoria}
-            </p>
-          </div>
+          <p className="text-[10px] text-accent font-black uppercase tracking-widest mb-1">
+            {product.categoria}
+          </p>
           
-          <h3 className="text-xl font-bold text-darkText mb-2 leading-tight group-hover:text-primary transition-colors">
+          <h3 className="text-xl font-bold text-darkText mb-2 leading-tight group-hover:text-primary transition-colors line-clamp-2">
             {product.nombre}
           </h3>
           
-          {/* Descripción condicional: solo si tiene contenido real */}
           {hasDescription && (
             <p className="text-xs text-gray-500 mb-4 line-clamp-2 leading-relaxed italic">
               {product.descripcion}
@@ -112,7 +91,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, exchangeRate }) => {
                 {formatCurrency(product.precio)}
               </span>
               <span className="text-[10px] text-gray-300 font-mono tracking-tighter">
-                REF: {product.precio.toFixed(2)}
+                REF: {product.precio.toFixed(2).replace('.', ',')}
               </span>
             </div>
             <div className="text-sm text-accent font-bold">
