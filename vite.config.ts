@@ -10,21 +10,17 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: false,
-    minify: 'terser', 
-    terserOptions: {
-      compress: {
-        drop_console: true,
-        drop_debugger: true
-      }
-    },
+    minify: 'esbuild', // Esbuild es nativo de Vite, elimina la necesidad de terser
     rollupOptions: {
       output: {
         manualChunks: {
-          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-          'supabase-vendor': ['@supabase/supabase-js'],
-          'icons': ['lucide-react']
+          'vendor': ['react', 'react-dom', 'react-router-dom'],
+          'supabase': ['@supabase/supabase-js']
         }
       }
     }
+  },
+  esbuild: {
+    drop: ['console', 'debugger'], // Limpia el código de producción automáticamente
   }
 });
