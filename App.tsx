@@ -8,7 +8,7 @@ import HomePage from './pages/HomePage';
 import CheckoutPage from './pages/CheckoutPage';
 import MyOrdersPage from './pages/MyOrdersPage';
 import AdminPage from './pages/AdminPage';
-import { ShieldAlert, TrendingUp, Megaphone } from 'lucide-react';
+import { ShieldAlert, TrendingUp, Megaphone, Zap } from 'lucide-react';
 
 const Footer: React.FC = () => {
   const { config } = useAppContext();
@@ -41,16 +41,16 @@ const Footer: React.FC = () => {
         </div>
 
         <div>
-          <h4 className="font-black mb-8 uppercase text-[10px] tracking-[0.2em] text-accent">Publicidad</h4>
-          <p className="text-sm text-gray-400 mb-6 font-medium italic">¿Quieres vender aquí? Impulsa tu marca con nosotros.</p>
-          <a href="https://wa.me/584241208234" target="_blank" className="inline-flex items-center gap-3 bg-primary text-white px-8 py-3.5 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg hover:shadow-primary/20 transition-all active:scale-95">
-            <Megaphone size={14} /> Anuncia tus productos
+          <h4 className="font-black mb-8 uppercase text-[10px] tracking-[0.2em] text-accent">Alianzas</h4>
+          <p className="text-sm text-gray-400 mb-6 font-medium italic">Potencia tu marca. Llega a todo Paracotos con nosotros.</p>
+          <a href="https://wa.me/584241208234" target="_blank" className="inline-flex items-center gap-3 bg-accent text-white px-10 py-4 rounded-xl font-black text-[11px] uppercase tracking-[0.2em] shadow-xl shadow-accent/20 hover:scale-105 transition-all active:scale-95">
+            <Zap size={16} fill="currentColor" /> ¡Vende Aquí!
           </a>
         </div>
       </div>
       
       <div className="max-w-7xl mx-auto px-4 mt-20 pt-8 border-t border-gray-50 flex flex-col md:flex-row justify-between items-center gap-4 text-[9px] text-gray-300 font-black uppercase tracking-[0.2em]">
-        <span>&copy; {new Date().getFullYear()} JX4 Paracotos • v10.0.9</span>
+        <span>&copy; {new Date().getFullYear()} JX4 Paracotos • v10.1.0</span>
         <div className="flex gap-6 italic">
           <span>Distribución Directa</span>
           <Link to="/admin" className="hover:text-primary">Acceso Privado</Link>

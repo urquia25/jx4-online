@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShoppingBag, CreditCard, MapPin, Phone, User, Send, ChevronRight, Trash2, Plus, Minus, AlertTriangle } from 'lucide-react';
+import { ShoppingBag, CreditCard, MapPin, Phone, User, Send, ChevronRight, Trash2, Plus, Minus, AlertTriangle, Layers } from 'lucide-react';
 import { useCart } from '../contexts/CartContext';
 import { useAppContext } from '../contexts/AppContext';
 import { searchCustomer, createOrderInGAS } from '../services/api';
@@ -9,7 +9,7 @@ import { formatCurrency, formatBs, transformDriveUrl } from '../utils/formatters
 import { generateWhatsAppMessage } from '../utils/whatsapp';
 
 const CheckoutPage: React.FC = () => {
-  const { cart, cartTotal, cartCount, updateQuantity, removeFromCart, clearCart } = useCart();
+  const { cart, cartTotal, cartCount, updateQuantity, removeFromCart, clearCart, cartDepartment } = useCart();
   const { config, categories } = useAppContext();
   const navigate = useNavigate();
 
@@ -22,27 +22,13 @@ const CheckoutPage: React.FC = () => {
     notas: ''
   });
 
-  // Determinar el número de WhatsApp destino según el departamento de los productos
+  // Determinar el número de WhatsApp destino (Simplificado: 1 solo departamento)
   const destinationNumber = useMemo(() => {
     if (cart.length === 0) return config.whatsapp_principal;
-
-    // Buscamos los teléfonos de los departamentos de cada producto en el carrito
-    const deptPhones = cart
-      .map(item => categories.find(c => c.nombre === item.categoria)?.telefono)
-      .filter(phone => !!phone && phone.trim() !== '');
     
-    // Obtenemos números únicos
-    const uniquePhones = Array.from(new Set(deptPhones));
-    
-    // Si todos los productos pertenecen a departamentos con el mismo número, usamos ese.
-    // Si hay mezcla de departamentos con números distintos, usamos el principal como centralizador.
-    if (uniquePhones.length === 1) {
-      return uniquePhones[0] as string;
-    }
-    
-    // Fallback al número principal
-    return config.whatsapp_principal;
-  }, [cart, categories, config.whatsapp_principal]);
+    const currentDept = categories.find(c => c.nombre === cartDepartment);
+    return currentDept?.telefono || config.whatsapp_principal;
+  }, [cart, categories, config.whatsapp_principal, cartDepartment]);
 
   const handlePhoneBlur = async () => {
     if (formData.telefono.length >= 10) {
@@ -74,23 +60,19 @@ const CheckoutPage: React.FC = () => {
     };
 
     try {
-      // Intentamos guardar en ambos sistemas. GAS es prioritario para el comercio.
       await createOrderInGAS(orderData);
-      
       try {
         await saveOrderToSupabase(orderData);
       } catch (sbErr) {
-        console.warn('Error al respaldar en Supabase, pero GAS fue exitoso:', sbErr);
+        console.warn('Backup error ignored');
       }
 
-      // Generar link con el número dinámico (del departamento o principal)
       const waLink = generateWhatsAppMessage(orderData, destinationNumber);
       clearCart();
       window.open(waLink, '_blank');
       navigate('/mis-pedidos');
     } catch (error) {
-      console.error('Order Submission Error:', error);
-      alert('Hubo un error al procesar el pedido. Verifica tu conexión e intenta de nuevo.');
+      alert('Error al procesar el pedido.');
     } finally {
       setLoading(false);
     }
@@ -113,11 +95,16 @@ const CheckoutPage: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 pb-20 grid grid-cols-1 lg:grid-cols-2 gap-12 pt-10">
-      <div>
-        <h2 className="text-2xl font-black text-primary mb-8 flex items-center gap-3">
-          <ShoppingBag size={28} /> Resumen del Pedido
-        </h2>
-        
+      <div className="flex flex-col gap-8">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-black text-primary flex items-center gap-3">
+            <ShoppingBag size={28} /> Resumen del Pedido
+          </h2>
+          <div className="px-4 py-1.5 bg-primary/5 text-primary text-[10px] font-black uppercase tracking-widest rounded-full border border-primary/10">
+            {cartDepartment}
+          </div>
+        </div>
+
         <div className="bg-white rounded-custom p-8 shadow-sm border border-gray-100 flex flex-col gap-6">
           <div className="space-y-6">
             {cart.map(item => {
@@ -130,7 +117,6 @@ const CheckoutPage: React.FC = () => {
                   </div>
                   <div className="flex-1">
                     <h4 className="font-bold text-primary leading-tight mb-1">{item.nombre}</h4>
-                    <p className="text-[10px] text-accent font-black uppercase tracking-widest">{item.categoria}</p>
                     {weighted && (
                       <span className="inline-flex items-center gap-1 text-[9px] text-amber-600 font-bold mt-2 bg-amber-50 px-2 py-0.5 rounded-full">
                         <AlertTriangle size={10} /> Sujeto a peso final
@@ -140,31 +126,13 @@ const CheckoutPage: React.FC = () => {
                   
                   <div className="flex flex-col items-end gap-3">
                     <div className="flex items-center bg-offwhite rounded-xl p-1 border border-gray-100">
-                      <button 
-                        onClick={() => updateQuantity(item.id, item.quantity - (weighted ? 0.1 : 1))} 
-                        className="p-1.5 hover:bg-white hover:shadow-sm rounded-lg transition-all text-primary"
-                      >
-                        <Minus size={14}/>
-                      </button>
-                      
-                      <input 
-                        type="number" 
-                        step={weighted ? "0.001" : "1"}
-                        className="w-14 text-center bg-transparent font-black text-xs outline-none"
-                        value={weighted ? item.quantity.toFixed(2) : item.quantity}
-                        onChange={(e) => updateQuantity(item.id, parseFloat(e.target.value) || 0)}
-                      />
-
-                      <button 
-                        onClick={() => updateQuantity(item.id, item.quantity + (weighted ? 0.1 : 1))} 
-                        className="p-1.5 hover:bg-white hover:shadow-sm rounded-lg transition-all text-primary"
-                      >
-                        <Plus size={14}/>
-                      </button>
+                      <button onClick={() => updateQuantity(item.id, item.quantity - (weighted ? 0.1 : 1))} className="p-1.5 text-primary"><Minus size={14}/></button>
+                      <input type="number" step={weighted ? "0.001" : "1"} className="w-14 text-center bg-transparent font-black text-xs" value={weighted ? item.quantity.toFixed(2) : item.quantity} onChange={(e) => updateQuantity(item.id, parseFloat(e.target.value) || 0)} />
+                      <button onClick={() => updateQuantity(item.id, item.quantity + (weighted ? 0.1 : 1))} className="p-1.5 text-primary"><Plus size={14}/></button>
                     </div>
                     <div className="text-right">
                       <div className="font-black text-primary">{formatCurrency(item.precio * item.quantity)}</div>
-                      <button onClick={() => removeFromCart(item.id)} className="text-error/40 hover:text-error transition-colors p-1"><Trash2 size={14}/></button>
+                      <button onClick={() => removeFromCart(item.id)} className="text-error/40 p-1"><Trash2 size={14}/></button>
                     </div>
                   </div>
                 </div>
@@ -181,7 +149,7 @@ const CheckoutPage: React.FC = () => {
               <span className="font-black text-xs uppercase tracking-[0.2em]">Total Bs.</span>
               <div className="text-right">
                 <div className="text-2xl font-black">{formatBs(cartTotal * config.tasa_cambio)}</div>
-                <div className="text-[10px] opacity-60 font-bold">Tasa: {config.tasa_cambio} Bs.</div>
+                <div className="text-[10px] opacity-60 font-bold text-right">Tasa: {config.tasa_cambio} Bs.</div>
               </div>
             </div>
           </div>
@@ -199,87 +167,35 @@ const CheckoutPage: React.FC = () => {
               <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Tu Teléfono</label>
               <div className="relative">
                 <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" size={18} />
-                <input 
-                  type="tel" 
-                  required
-                  className="w-full pl-12 pr-4 py-4 rounded-2xl border border-gray-100 bg-offwhite focus:ring-4 focus:ring-primary/5 outline-none transition-all font-bold"
-                  placeholder="0424..."
-                  value={formData.telefono}
-                  onChange={e => setFormData({...formData, telefono: e.target.value})}
-                  onBlur={handlePhoneBlur}
-                />
+                <input type="tel" required className="w-full pl-12 pr-4 py-4 rounded-2xl border border-gray-100 bg-offwhite font-bold" value={formData.telefono} onChange={e => setFormData({...formData, telefono: e.target.value})} onBlur={handlePhoneBlur} />
               </div>
             </div>
-
             <div>
-              <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Nombre Completo</label>
+              <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Nombre</label>
               <div className="relative">
                 <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" size={18} />
-                <input 
-                  type="text" 
-                  required
-                  className="w-full pl-12 pr-4 py-4 rounded-2xl border border-gray-100 bg-offwhite focus:ring-4 focus:ring-primary/5 outline-none transition-all font-bold"
-                  placeholder="Juan Pérez"
-                  value={formData.nombre}
-                  onChange={e => setFormData({...formData, nombre: e.target.value})}
-                />
+                <input type="text" required className="w-full pl-12 pr-4 py-4 rounded-2xl border border-gray-100 bg-offwhite font-bold" value={formData.nombre} onChange={e => setFormData({...formData, nombre: e.target.value})} />
               </div>
             </div>
           </div>
-
           <div>
-            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Dirección de Entrega</label>
-            <textarea 
-              required
-              rows={3}
-              className="w-full px-5 py-4 rounded-2xl border border-gray-100 bg-offwhite focus:ring-4 focus:ring-primary/5 outline-none transition-all font-bold"
-              placeholder="Indica calle, casa y punto de referencia..."
-              value={formData.direccion}
-              onChange={e => setFormData({...formData, direccion: e.target.value})}
-            />
+            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Dirección</label>
+            <textarea required rows={3} className="w-full px-5 py-4 rounded-2xl border border-gray-100 bg-offwhite font-bold" value={formData.direccion} onChange={e => setFormData({...formData, direccion: e.target.value})} />
           </div>
-
           <div>
-            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Método de Pago</label>
+            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Pago</label>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {(['efectivo', 'transferencia', 'pago_movil'] as const).map(method => (
-                <button
-                  key={method}
-                  type="button"
-                  onClick={() => setFormData({...formData, metodo_pago: method})}
-                  className={`py-4 rounded-2xl font-black uppercase text-[9px] tracking-[0.2em] transition-all border ${
-                    formData.metodo_pago === method 
-                      ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20 scale-105' 
-                      : 'bg-white text-gray-400 border-gray-100 hover:bg-offwhite'
-                  }`}
-                >
+                <button key={method} type="button" onClick={() => setFormData({...formData, metodo_pago: method})} className={`py-4 rounded-2xl font-black uppercase text-[9px] tracking-[0.2em] border ${formData.metodo_pago === method ? 'bg-primary text-white border-primary shadow-lg' : 'bg-white text-gray-400'}`}>
                   {method.replace('_', ' ')}
                 </button>
               ))}
             </div>
           </div>
-
-          <div>
-            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Comentarios / Notas</label>
-            <input 
-              type="text" 
-              className="w-full px-5 py-4 rounded-2xl border border-gray-100 bg-offwhite focus:ring-4 focus:ring-primary/5 outline-none transition-all font-medium"
-              placeholder="¿Alguna instrucción extra?"
-              value={formData.notas}
-              onChange={e => setFormData({...formData, notas: e.target.value})}
-            />
-          </div>
         </div>
 
-        <button 
-          disabled={loading}
-          className="w-full bg-accent text-white py-7 rounded-custom font-black text-xl shadow-2xl hover:bg-[#c49564] active:scale-[0.98] transition-all flex items-center justify-center gap-4 disabled:opacity-50"
-        >
-          {loading ? 'Procesando...' : (
-            <>
-              Confirmar en WhatsApp <Send size={24} />
-            </>
-          )}
+        <button disabled={loading} className="w-full bg-accent text-white py-7 rounded-custom font-black text-xl shadow-2xl hover:scale-[1.02] transition-all flex items-center justify-center gap-4">
+          {loading ? 'Procesando...' : <><Send size={24} /> Confirmar Pedido de {cartDepartment}</>}
         </button>
       </form>
     </div>

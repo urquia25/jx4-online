@@ -1,15 +1,16 @@
-
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { Product, CartItem } from '../types';
 
 interface CartContextType {
   cart: CartItem[];
-  addToCart: (product: Product) => void;
+  addToCart: (product: Product) => boolean; // Retorna true si se agregó, false si hay conflicto
+  clearAndAdd: (product: Product) => void;
   removeFromCart: (productId: string) => void;
   updateQuantity: (productId: string, quantity: number) => void;
   clearCart: () => void;
   cartTotal: number;
   cartCount: number;
+  cartDepartment: string | null;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -31,24 +32,35 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem('jx4_cart', JSON.stringify(cart));
   }, [cart]);
 
+  const cartDepartment = useMemo(() => {
+    if (cart.length === 0) return null;
+    return cart[0].categoria;
+  }, [cart]);
+
   const addToCart = (product: Product) => {
+    // Validar departamento
+    if (cart.length > 0 && cart[0].categoria !== product.categoria) {
+      return false; // Conflicto de departamento
+    }
+
     setCart(prev => {
-      const safePrev = Array.isArray(prev) ? prev : [];
-      const existing = safePrev.find(item => item && item.id === product.id);
+      const existing = prev.find(item => item.id === product.id);
       if (existing) {
-        return safePrev.map(item => 
+        return prev.map(item => 
           item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
         );
       }
-      return [...safePrev, { ...product, quantity: 1 }];
+      return [...prev, { ...product, quantity: 1 }];
     });
+    return true;
+  };
+
+  const clearAndAdd = (product: Product) => {
+    setCart([{ ...product, quantity: 1 }]);
   };
 
   const removeFromCart = (productId: string) => {
-    setCart(prev => {
-      const safePrev = Array.isArray(prev) ? prev : [];
-      return safePrev.filter(item => item && item.id !== productId);
-    });
+    setCart(prev => prev.filter(item => item.id !== productId));
   };
 
   const updateQuantity = (productId: string, quantity: number) => {
@@ -56,22 +68,28 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       removeFromCart(productId);
       return;
     }
-    setCart(prev => {
-      const safePrev = Array.isArray(prev) ? prev : [];
-      return safePrev.map(item => 
-        item && item.id === productId ? { ...item, quantity } : item
-      );
-    });
+    setCart(prev => prev.map(item => 
+      item.id === productId ? { ...item, quantity } : item
+    ));
   };
 
   const clearCart = () => setCart([]);
 
-  const safeCart = Array.isArray(cart) ? cart : [];
-  const cartTotal = safeCart.reduce((acc, item) => acc + (item ? item.precio * item.quantity : 0), 0);
-  const cartCount = safeCart.reduce((acc, item) => acc + (item ? item.quantity : 0), 0);
+  const cartTotal = cart.reduce((acc, item) => acc + (item.precio * item.quantity), 0);
+  const cartCount = cart.reduce((acc, item) => acc + item.quantity, 0);
 
   return (
-    <CartContext.Provider value={{ cart: safeCart, addToCart, removeFromCart, updateQuantity, clearCart, cartTotal, cartCount }}>
+    <CartContext.Provider value={{ 
+      cart, 
+      addToCart, 
+      clearAndAdd,
+      removeFromCart, 
+      updateQuantity, 
+      clearCart, 
+      cartTotal, 
+      cartCount,
+      cartDepartment
+    }}>
       {children}
     </CartContext.Provider>
   );
