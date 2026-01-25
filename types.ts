@@ -8,6 +8,7 @@ export interface Product {
   imagenurl: string;
   departamento_id?: string;
   disponible: boolean;
+  unidad?: 'unidad' | 'kg'; // Nueva propiedad para manejo de decimales
 }
 
 export interface Config {
