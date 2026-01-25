@@ -10,7 +10,13 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: false,
-    minify: 'esbuild', // Esbuild es nativo de Vite y mucho más rápido
+    minify: 'terser', 
+    terserOptions: {
+      compress: {
+        drop_console: true,
+        drop_debugger: true
+      }
+    },
     rollupOptions: {
       output: {
         manualChunks: {
@@ -20,9 +26,5 @@ export default defineConfig({
         }
       }
     }
-  },
-  esbuild: {
-    // Esto reemplaza las opciones de terser para limpiar el código
-    drop: ['console', 'debugger'],
   }
 });
