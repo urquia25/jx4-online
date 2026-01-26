@@ -3,7 +3,7 @@ import { GAS_URL } from '../constants';
 import { Order, Product } from '../types';
 
 /**
- * Obtiene todos los datos sincronizados desde Google Apps Script v10.0.3
+ * Obtiene todos los datos sincronizados desde Google Apps Script v10.1.2
  */
 export const fetchAppData = async (): Promise<any> => {
   try {
@@ -20,7 +20,6 @@ export const fetchAppData = async (): Promise<any> => {
         departamentos: departamentos || [],
         config: config || {},
         cintillo: cintillo || [],
-        // Prioridad: 1. tasa_cambio raíz, 2. config.tasa_cambio, 3. Fallback 36.5
         tasa_cambio: parseFloat(tasa_cambio) || parseFloat(config?.tasa_cambio) || 36.5
       };
     }
@@ -45,31 +44,40 @@ export const searchCustomer = async (phone: string) => {
 };
 
 /**
- * Crea un nuevo pedido en Google Sheets
+ * Crea un nuevo pedido en Google Sheets con compatibilidad total v10.1.2
  */
 export const createOrderInGAS = async (order: Order) => {
   try {
+    const payload = { 
+      action: 'crear_pedido', 
+      telefono: order.telefono,
+      nombre: order.nombre,
+      direccion: order.direccion,
+      productos: order.productos.map(p => ({
+        id: p.id,
+        nombre: p.nombre,
+        precio: p.precio,
+        quantity: p.quantity, // Debe ser 'quantity' para el script GAS
+        unidad: p.unidad || 'und',
+        departamento: p.departamento || 'General'
+      })),
+      total: order.total,
+      metodo_pago: order.metodo_pago,
+      notas: order.notas
+    };
+
     const response = await fetch(GAS_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({ 
-        action: 'crear_pedido', 
-        telefono: order.telefono,
-        nombre: order.nombre,
-        direccion: order.direccion,
-        productos: order.productos.map(p => ({
-          id: p.id,
-          nombre: p.nombre,
-          precio: p.precio,
-          cantidad: p.quantity
-        })),
-        total: order.total,
-        metodo_pago: order.metodo_pago,
-        notas: order.notas
-      })
+      body: JSON.stringify(payload)
     });
-    return await response.json();
-  } catch (error) {
+    
+    const result = await response.json();
+    if (!result.success) {
+      throw new Error(result.error || 'Error reportado por el servidor JX4');
+    }
+    return result;
+  } catch (error: any) {
     console.error('GAS Order Error:', error);
     throw error;
   }
@@ -96,20 +104,21 @@ export const updateExchangeRateInGAS = async (newTasa: number) => {
   }
 };
 
+// Fix: Rename updateConfigInGAS to updateCintilloInGAS to fix the error in AdminPage.tsx
 /**
  * Actualiza el texto del cintillo en GAS
  */
-export const updateCintilloInGAS = async (newText: string) => {
+export const updateCintilloInGAS = async (value: string) => {
   try {
     const response = await fetch(GAS_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify({ 
-        action: 'actualizar_cintillo', 
-        texto: newText
+        action: 'actualizar_config', 
+        clave: 'cintillo',
+        valor: value
       })
     });
-    if (!response.ok) throw new Error('Error al actualizar el cintillo en JX4 Cloud');
     return await response.json();
   } catch (error) {
     console.error('GAS Update Cintillo Error:', error);

@@ -1,7 +1,7 @@
 import { Order, CartItem } from '../types';
 import { formatCurrency, formatBs } from './formatters';
 
-export const generateWhatsAppMessage = (order: Order, whatsappNumber: string) => {
+export const generateWhatsAppMessage = (order: Order, whatsappNumber: string | number) => {
   const isWeighted = (item: any) => 
     item.unidad === 'kg' || 
     item.categoria?.toLowerCase().includes('carniceria') || 
@@ -41,5 +41,6 @@ _Enviado desde JX4 Paracotos Digital_
   `.trim();
 
   const encodedMessage = encodeURIComponent(message);
-  return `https://wa.me/${whatsappNumber.replace(/\D/g, '')}?text=${encodedMessage}`;
+  const cleanNumber = String(whatsappNumber || '').replace(/\D/g, '');
+  return `https://wa.me/${cleanNumber}?text=${encodedMessage}`;
 };

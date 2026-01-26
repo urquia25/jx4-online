@@ -27,11 +27,14 @@ const MyOrdersPage: React.FC = () => {
     }
   };
 
-  // Función para intentar extraer el nombre del cliente de la cadena de notas consolidada
+  // Función para extraer el nombre del cliente de diferentes posibles columnas
   const extractName = (order: any) => {
-    if (order.nombre) return order.nombre;
-    const match = order.notas?.match(/👤 CLIENTE:\s*(.*?)\s*\|/);
-    return match ? match[1] : 'Cliente JX4';
+    return order.nombre_cliente || order.nombre || 'Cliente JX4';
+  };
+
+  // Función para obtener el estado del pedido
+  const getStatus = (order: any) => {
+    return order.estado || order.status || 'Pendiente';
   };
 
   return (
@@ -72,7 +75,7 @@ const MyOrdersPage: React.FC = () => {
         <div className="space-y-8">
           {orders.length > 0 ? (
             orders.map(order => (
-              <div key={order.id || Math.random()} className="bg-white rounded-[2.5rem] p-10 shadow-sm border border-gray-100 transition-all hover:shadow-xl hover:-translate-y-1">
+              <div key={order.id_pedido || order.id || Math.random()} className="bg-white rounded-[2.5rem] p-10 shadow-sm border border-gray-100 transition-all hover:shadow-xl hover:-translate-y-1">
                 <div className="flex flex-col md:flex-row justify-between items-start gap-6 mb-10">
                   <div className="flex items-center gap-5">
                     <div className="w-14 h-14 bg-offwhite rounded-2xl flex items-center justify-center text-primary shadow-inner">
@@ -80,18 +83,18 @@ const MyOrdersPage: React.FC = () => {
                     </div>
                     <div>
                       <span className="text-[10px] font-black text-accent uppercase tracking-[0.2em] block mb-1">
-                        Pedido #{String(order.id || 'N/A').slice(-6).toUpperCase()}
+                        Pedido #{String(order.id_pedido || order.id || 'N/A').slice(-6).toUpperCase()}
                       </span>
                       <h3 className="text-xl font-black text-primary">
                         {extractName(order)}
                       </h3>
                       <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">
-                         {order.created_at ? new Date(order.created_at).toLocaleDateString() : 'Fecha Reciente'}
+                         {order.fecha_pedido ? new Date(order.fecha_pedido).toLocaleDateString() : (order.created_at ? new Date(order.created_at).toLocaleDateString() : 'Fecha Reciente')}
                       </p>
                     </div>
                   </div>
                   <div className="px-6 py-2.5 bg-green-50 text-success rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-2 border border-green-100/50">
-                    <CheckCircle2 size={16}/> {order.status || 'Pendiente'}
+                    <CheckCircle2 size={16}/> {getStatus(order)}
                   </div>
                 </div>
 
@@ -100,13 +103,13 @@ const MyOrdersPage: React.FC = () => {
                     <p className="text-[10px] font-black text-gray-300 uppercase tracking-[0.2em] mb-3">Resumen Financiero</p>
                     <div className="space-y-1">
                       <p className="font-black text-primary text-2xl leading-none">{formatCurrency(order.total)}</p>
-                      <p className="text-xs font-bold text-accent italic">Aprox. en Bs. al cambio del día</p>
+                      <p className="text-xs font-bold text-accent italic">Bs. {formatBs(order.total * 36.5)} (Ref)</p>
                     </div>
                   </div>
                   <div className="p-6 bg-offwhite rounded-3xl border border-gray-50">
                     <p className="text-[10px] font-black text-gray-300 uppercase tracking-[0.2em] mb-3">Información de Entrega</p>
                     <p className="font-bold text-primary text-xs leading-relaxed italic line-clamp-3">
-                      {order.notas || 'Detalles guardados en administración'}
+                      {order.direccion_entrega || order.notas || 'Detalles guardados en administración'}
                     </p>
                   </div>
                 </div>
@@ -125,7 +128,7 @@ const MyOrdersPage: React.FC = () => {
           ) : (
             <div className="text-center py-32 bg-white rounded-[3rem] border border-dashed border-gray-100">
               <Package size={64} className="mx-auto text-gray-100 mb-8" />
-              <p className="text-gray-300 font-black uppercase text-[12px] tracking-[0.4em]">Sin historial de pedidos</p>
+              <p className="text-gray-300 font-black uppercase text-[12px] tracking-[0.4em]">Sin historial de pedidos para {phone}</p>
             </div>
           )}
         </div>

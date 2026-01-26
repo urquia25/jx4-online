@@ -4,11 +4,12 @@ export interface Product {
   nombre: string;
   precio: number;
   categoria: string;
+  departamento: string; // Campo crítico para validación multi-departamento
   descripcion: string;
   imagenurl: string;
   departamento_id?: string;
   disponible: boolean;
-  unidad?: 'unidad' | 'kg'; // Nueva propiedad para manejo de decimales
+  unidad: string; // und, kg, etc.
 }
 
 export interface Config {
@@ -47,4 +48,5 @@ export interface Order {
   notas: string;
   fecha?: string;
   status?: string;
+  estado?: string;
 }
