@@ -1,7 +1,8 @@
+
 {
   "name": "jx4-online",
   "private": true,
-  "version": "10.0.6",
+  "version": "11.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -14,6 +15,7 @@
     "react-router-dom": "^7.1.0",
     "lucide-react": "^0.460.0",
     "@supabase/supabase-js": "^2.46.1",
+    "xlsx": "^0.18.5",
     "clsx": "^2.1.1",
     "tailwind-merge": "^2.5.4"
   },

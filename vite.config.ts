@@ -1,8 +1,12 @@
+
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
+  resolve: {
+    extensions: ['.mjs', '.js', '.ts', '.jsx', '.tsx', '.json']
+  },
   build: {
     outDir: 'dist',
     sourcemap: false,
@@ -12,15 +16,12 @@ export default defineConfig({
         manualChunks: {
           'vendor-react': ['react', 'react-dom', 'react-router-dom'],
           'vendor-supabase': ['@supabase/supabase-js'],
-          'vendor-icons': ['lucide-react']
+          'vendor-utils': ['xlsx', 'lucide-react']
         }
       }
     }
   },
   server: {
     port: 3000
-  },
-  esbuild: {
-    drop: ['console', 'debugger'],
   }
 });
