@@ -10,21 +10,15 @@ export const fetchAppData = async () => {
       sb.fetchAllConfig()
     ]);
 
-    // Adaptamos los nombres de los campos de Supabase a los tipos de la App
-    const normalizedProducts = (productos || []).map((p: any) => ({
-      ...p,
-      imagenurl: p.imagen_url || p.imagenurl || ''
-    }));
-
     return {
-      productos: normalizedProducts,
+      productos: productos || [],
       departamentos: departamentos || [],
       config: config || {},
-      cintillo: config.cintillo ? [{ texto: config.cintillo, tipo: 'info' }] : [],
+      cintillo: config.cintillo || "✨ ¡Bienvenidos a JX4 Paracotos! Calidad natural en cada pedido. ✨",
       tasa_cambio: parseFloat(config.tasa_cambio) || 36.5
     };
   } catch (error) {
-    console.error('Error fetching data from Supabase:', error);
+    console.error('Error fetching app data:', error);
     throw error;
   }
 };
@@ -34,23 +28,21 @@ export const searchCustomer = async (phone: string) => {
     const cleanPhone = phone.replace(/\D/g, '');
     const orders = await sb.fetchOrdersFromSupabase(cleanPhone);
     if (orders && orders.length > 0) {
-      // Retornamos el perfil más reciente
       return {
         nombre: orders[0].nombre_cliente,
         direccion: orders[0].direccion_entrega
       };
     }
   } catch (e) {
-    console.warn('Error buscando cliente en historial:', e);
+    console.warn('Error fetching customer profile:', e);
   }
   return null;
 };
 
-export const createOrderInGAS = async (order: Order) => {
-  // En v11.0, esta función simplemente guarda en Supabase
+export const createOrderInGAS = async (order: any) => {
+  // Ahora es createOrderInSupabase realmente
   const id_pedido = `PED-${Date.now()}`;
-  await sb.saveOrderToSupabase({ ...order, id_pedido });
-  return { success: true, order_id: id_pedido };
+  return await sb.saveOrderToSupabase({ ...order, id_pedido });
 };
 
 export const updateExchangeRateInGAS = async (newTasa: number) => {

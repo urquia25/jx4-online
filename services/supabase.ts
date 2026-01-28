@@ -15,15 +15,9 @@ export const fetchProducts = async () => {
 };
 
 export const upsertProduct = async (product: any) => {
-  // Aseguramos que los nombres de columnas coincidan con el esquema v11.0
-  const payload = {
-    ...product,
-    imagen_url: product.imagen_url || product.imagenurl // Normalización
-  };
-  
   const { data, error } = await supabase
     .from('productos')
-    .upsert([payload]);
+    .upsert([product]);
   if (error) throw error;
   return data;
 };
@@ -36,25 +30,6 @@ export const deleteProduct = async (id: string) => {
   if (error) throw error;
 };
 
-// --- IMÁGENES (STORAGE) ---
-export const uploadProductImage = async (file: File) => {
-  const fileExt = file.name.split('.').pop();
-  const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-  const filePath = `catalog/${fileName}`;
-
-  const { error: uploadError } = await supabase.storage
-    .from('producto-imagenes')
-    .upload(filePath, file);
-
-  if (uploadError) throw uploadError;
-
-  const { data } = supabase.storage
-    .from('producto-imagenes')
-    .getPublicUrl(filePath);
-
-  return data.publicUrl;
-};
-
 // --- CONFIGURACIÓN ---
 export const fetchAllConfig = async () => {
   const { data, error } = await supabase.from('config').select('*');
@@ -62,16 +37,6 @@ export const fetchAllConfig = async () => {
   const configMap: any = {};
   data.forEach(item => { configMap[item.llave] = item.valor; });
   return configMap;
-};
-
-export const fetchConfigValue = async (key: string) => {
-  const { data, error } = await supabase
-    .from('config')
-    .select('valor')
-    .eq('llave', key)
-    .maybeSingle();
-  if (error) return null;
-  return data?.valor || null;
 };
 
 export const updateConfigValue = async (key: string, value: string) => {
@@ -93,7 +58,7 @@ export const saveOrderToSupabase = async (order: any) => {
   const { data, error } = await supabase
     .from('pedidos')
     .insert([{
-      id_pedido: order.id_pedido || `PED-${Date.now()}`,
+      id_pedido: order.id_pedido,
       telefono_cliente: order.telefono,
       nombre_cliente: order.nombre,
       direccion_entrega: order.direccion,
@@ -101,10 +66,11 @@ export const saveOrderToSupabase = async (order: any) => {
       total: order.total,
       metodo_pago: order.metodo_pago,
       notas: order.notas,
-      estado: order.estado || 'Pendiente',
+      estado: 'Pendiente',
       fecha_pedido: new Date().toISOString(),
       departamento: order.departamento
-    }]);
+    }])
+    .select();
   if (error) throw error;
   return data;
 };
@@ -118,4 +84,23 @@ export const fetchOrdersFromSupabase = async (phone?: string) => {
   const { data, error } = await query;
   if (error) throw error;
   return data;
+};
+
+// --- STORAGE ---
+export const uploadProductImage = async (file: File) => {
+  const fileExt = file.name.split('.').pop();
+  const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+  const filePath = `catalog/${fileName}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from('producto-imagenes')
+    .upload(filePath, file);
+
+  if (uploadError) throw uploadError;
+
+  const { data } = supabase.storage
+    .from('producto-imagenes')
+    .getPublicUrl(filePath);
+
+  return data.publicUrl;
 };
