@@ -47,7 +47,7 @@ const AdminPage: React.FC = () => {
       const health = await checkSystemHealth();
       setHealthStatus(health);
     } catch (e) {
-      console.error(e);
+      console.error('Health check error:', e);
     } finally {
       setCheckingHealth(false);
     }
@@ -103,26 +103,33 @@ const AdminPage: React.FC = () => {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = async (evt) => {
-      const bstr = evt.target?.result;
-      const wb = XLSX.read(bstr, { type: 'binary' });
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      const data = XLSX.utils.sheet_to_json(ws);
-      if (confirm(`Importar ${data.length} productos?`)) {
-        for (const row of data as any[]) {
-          try {
-            await upsertProduct({
-              nombre: row.Nombre || row.nombre,
-              precio: parseFloat(row.Precio || row.precio) || 0,
-              categoria: row.Categoria || row.categoria || 'General',
-              departamento: row.Departamento || row.departamento || 'General',
-              unidad: row.Unidad || row.unidad || 'und',
-              disponible: true,
-              descripcion: row.Descripcion || row.descripcion || '',
-              imagen_url: row.Imagen || row.imagen_url || row.imagenurl || ''
-            });
-          } catch (err) {}
+      try {
+        const bstr = evt.target?.result;
+        if (typeof bstr !== 'string') return;
+        
+        const wb = XLSX.read(bstr, { type: 'binary' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const data = XLSX.utils.sheet_to_json(ws);
+        
+        if (window.confirm(`¿Deseas importar ${data.length} productos a la base de datos?`)) {
+          for (const row of data as any[]) {
+            try {
+              await upsertProduct({
+                nombre: row.Nombre || row.nombre,
+                precio: parseFloat(row.Precio || row.precio) || 0,
+                categoria: row.Categoria || row.categoria || 'General',
+                departamento: row.Departamento || row.departamento || 'General',
+                unidad: row.Unidad || row.unidad || 'und',
+                disponible: true,
+                descripcion: row.Descripcion || row.descripcion || '',
+                imagen_url: row.Imagen || row.imagen_url || row.imagenurl || ''
+              });
+            } catch (err) {}
+          }
+          refreshData();
         }
-        refreshData();
+      } catch (err) {
+        alert('Error procesando archivo Excel');
       }
     };
     reader.readAsBinaryString(file);
@@ -130,7 +137,7 @@ const AdminPage: React.FC = () => {
 
   const filteredProducts = initialProducts.filter(p => 
     p.nombre.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    p.categoria.toLowerCase().includes(searchTerm.toLowerCase())
+    (p.categoria || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   if (!isAdmin) {
@@ -157,8 +164,8 @@ const AdminPage: React.FC = () => {
             <LayoutDashboard size={40} />
           </div>
           <div>
-            <h2 className="text-4xl font-black text-primary tracking-tighter">Panel de Control</h2>
-            <p className="text-gray-400 font-black uppercase text-[10px] tracking-[0.4em]">Gestión Supabase v11.0</p>
+            <h2 className="text-4xl font-black text-primary tracking-tighter">Panel Maestro</h2>
+            <p className="text-gray-400 font-black uppercase text-[10px] tracking-[0.4em]">Supabase v11.0</p>
           </div>
         </div>
         <div className="flex gap-4">
@@ -193,14 +200,14 @@ const AdminPage: React.FC = () => {
       {activeTab === 'config' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
           <div className="bg-white rounded-custom p-12 shadow-sm border border-gray-100">
-            <h3 className="text-2xl font-black text-primary mb-10 flex items-center gap-4"><TrendingUp className="text-accent" /> Tasa de Cambio Global</h3>
+            <h3 className="text-2xl font-black text-primary mb-10 flex items-center gap-4"><TrendingUp className="text-accent" /> Tasa USD / VES</h3>
             <input type="number" step="0.01" className="w-full px-8 py-8 rounded-[2rem] bg-offwhite text-4xl font-black text-primary outline-none mb-10" value={newTasa} onChange={e => setNewTasa(e.target.value)} />
-            <button onClick={() => updateExchangeRateInGAS(parseFloat(newTasa))} className="w-full bg-accent text-white py-8 rounded-[2rem] font-black uppercase text-[12px] tracking-[0.3em] shadow-xl">Sincronizar Tasa</button>
+            <button onClick={() => updateExchangeRateInGAS(parseFloat(newTasa))} className="w-full bg-accent text-white py-8 rounded-[2rem] font-black uppercase text-[12px] tracking-[0.3em] shadow-xl">Guardar Tasa</button>
           </div>
           <div className="bg-white rounded-custom p-12 shadow-sm border border-gray-100">
-            <h3 className="text-2xl font-black text-primary mb-10 flex items-center gap-4"><Megaphone /> Comunicado Marquee</h3>
+            <h3 className="text-2xl font-black text-primary mb-10 flex items-center gap-4"><Megaphone /> Cintillo</h3>
             <textarea rows={4} className="w-full px-8 py-8 rounded-[2rem] bg-offwhite font-bold outline-none mb-10 resize-none" value={newCintillo} onChange={e => setNewCintillo(e.target.value)} />
-            <button onClick={() => updateCintilloInGAS(newCintillo)} className="w-full bg-primary text-white py-8 rounded-[2rem] font-black uppercase text-[12px] tracking-[0.3em] shadow-xl">Actualizar Cintillo</button>
+            <button onClick={() => updateCintilloInGAS(newCintillo)} className="w-full bg-primary text-white py-8 rounded-[2rem] font-black uppercase text-[12px] tracking-[0.3em] shadow-xl">Actualizar Aviso</button>
           </div>
         </div>
       )}
@@ -208,7 +215,7 @@ const AdminPage: React.FC = () => {
       {activeTab === 'health' && (
         <div className="bg-white rounded-custom p-12 shadow-sm border border-gray-100">
           <div className="flex justify-between items-center mb-10">
-            <h3 className="text-2xl font-black text-primary flex items-center gap-4"><Server className="text-accent" /> Diagnóstico Supabase</h3>
+            <h3 className="text-2xl font-black text-primary flex items-center gap-4"><Server className="text-accent" /> Salud de Supabase</h3>
             <button onClick={handleCheckHealth} disabled={checkingHealth} className="p-4 bg-offwhite rounded-full hover:bg-gray-100 transition-all disabled:opacity-50">
               <RefreshCw className={checkingHealth ? 'animate-spin' : ''} />
             </button>
@@ -217,33 +224,32 @@ const AdminPage: React.FC = () => {
           {healthStatus ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               <div className="p-8 bg-offwhite rounded-3xl border border-gray-50 shadow-inner">
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Estado General</p>
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Conexión DB</p>
                 <div className="flex items-center gap-2">
                   <div className={`w-3 h-3 rounded-full ${healthStatus.ok ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                  <p className={`text-xl font-black ${healthStatus.ok ? 'text-green-600' : 'text-red-600'}`}>{healthStatus.ok ? 'OPERATIVO' : 'CON FALLAS'}</p>
+                  <p className={`text-xl font-black ${healthStatus.ok ? 'text-green-600' : 'text-red-600'}`}>{healthStatus.ok ? 'ESTABLE' : 'FALLO'}</p>
                 </div>
               </div>
               <div className="p-8 bg-offwhite rounded-3xl border border-gray-50 shadow-inner">
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Productos Registrados</p>
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Total Productos</p>
                 <p className="text-xl font-black text-primary">{healthStatus.counts?.productos || 0}</p>
               </div>
               <div className="p-8 bg-offwhite rounded-3xl border border-gray-50 shadow-inner">
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Pedidos en DB</p>
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Pedidos Totales</p>
                 <p className="text-xl font-black text-primary">{healthStatus.counts?.pedidos || 0}</p>
               </div>
               <div className="p-8 bg-offwhite rounded-3xl border border-gray-50 lg:col-span-3 shadow-inner">
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Verificación de Esquema</p>
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Esquema de Datos</p>
                 <div className="flex items-center gap-4">
                   <div className={`w-4 h-4 rounded-full ${healthStatus.imagen_url_column_exists ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                  <span className="font-bold text-primary">Columna 'imagen_url' {healthStatus.imagen_url_column_exists ? 'detectada' : 'NO DETECTADA'}</span>
+                  <span className="font-bold text-primary">Campo 'imagen_url': {healthStatus.imagen_url_column_exists ? 'Válido' : 'Faltante'}</span>
                 </div>
-                <p className="text-[10px] text-gray-400 mt-2 italic font-medium">Requerida para la visualización de imágenes en el catálogo nativo.</p>
               </div>
             </div>
           ) : (
             <div className="py-20 text-center">
               <Activity size={48} className="mx-auto text-gray-100 mb-6 animate-pulse" />
-              <p className="font-black text-gray-300 uppercase text-[10px] tracking-widest">Consultando Edge Function...</p>
+              <p className="font-black text-gray-300 uppercase text-[10px] tracking-widest">Sincronizando con Edge Function...</p>
             </div>
           )}
         </div>
@@ -254,16 +260,16 @@ const AdminPage: React.FC = () => {
           <div className="flex flex-col lg:flex-row gap-8 justify-between items-center bg-white p-8 rounded-custom border border-gray-50 shadow-sm">
              <div className="flex gap-4 w-full lg:w-auto">
                <button onClick={() => { setIsEditing(true); setCurrentProduct({ nombre: '', precio: 0, categoria: '', departamento: '', descripcion: '', imagen_url: '', disponible: true, unidad: 'und' }); }} className="flex-1 lg:flex-none bg-primary text-white px-10 py-6 rounded-2xl font-black uppercase text-[11px] tracking-widest flex items-center justify-center gap-4 shadow-xl hover:scale-105 transition-all">
-                 <Plus size={22}/> Nuevo Producto
+                 <Plus size={22}/> Nuevo Registro
                </button>
                <label className="cursor-pointer bg-offwhite border border-gray-100 text-gray-500 px-10 py-6 rounded-2xl font-black uppercase text-[11px] tracking-widest flex items-center justify-center gap-4 hover:bg-gray-50 transition-all">
-                 <FileText size={22}/> Excel
+                 <FileText size={22}/> Importar Excel
                  <input type="file" className="hidden" accept=".xlsx" onChange={handleImportExcel} />
                </label>
              </div>
              <div className="relative w-full lg:w-[450px]">
                 <Search size={24} className="absolute left-8 top-1/2 -translate-y-1/2 text-gray-300" />
-                <input type="text" placeholder="Buscar por nombre o departamento..." className="w-full pl-20 pr-8 py-6 rounded-2xl bg-offwhite border-none font-bold outline-none focus:ring-4 focus:ring-primary/5 transition-all" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+                <input type="text" placeholder="Buscar por nombre..." className="w-full pl-20 pr-8 py-6 rounded-2xl bg-offwhite border-none font-bold outline-none focus:ring-4 focus:ring-primary/5 transition-all" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
              </div>
           </div>
           
@@ -272,11 +278,11 @@ const AdminPage: React.FC = () => {
               <table className="w-full">
                 <thead className="bg-offwhite/50 border-b border-gray-50">
                   <tr className="text-[10px] font-black text-gray-400 uppercase tracking-[0.4em]">
-                    <th className="px-10 py-8 text-left">Detalle Producto</th>
-                    <th className="px-10 py-8 text-left">Precio Ref.</th>
-                    <th className="px-10 py-8 text-left">Departamento</th>
+                    <th className="px-10 py-8 text-left">Producto</th>
+                    <th className="px-10 py-8 text-left">Precio</th>
+                    <th className="px-10 py-8 text-left">Depto</th>
                     <th className="px-10 py-8 text-center">Estado</th>
-                    <th className="px-10 py-8 text-right">Gestión</th>
+                    <th className="px-10 py-8 text-right">Acción</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
@@ -292,13 +298,13 @@ const AdminPage: React.FC = () => {
                       </td>
                       <td className="px-10 py-6 text-center">
                         <span className={`px-4 py-2 rounded-full text-[9px] font-black uppercase tracking-widest ${p.disponible ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
-                          {p.disponible ? '✓ Activo' : '✕ Agotado'}
+                          {p.disponible ? '✓' : '✕'}
                         </span>
                       </td>
                       <td className="px-10 py-6 text-right">
                         <div className="flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all">
                           <button onClick={() => { setCurrentProduct({...p}); setIsEditing(true); }} className="p-4 text-primary bg-offwhite rounded-2xl hover:bg-primary hover:text-white transition-all shadow-inner"><Edit3 size={20}/></button>
-                          <button onClick={() => { if(confirm('¿Seguro que desea eliminar?')) deleteProduct(p.id!).then(refreshData); }} className="p-4 text-red-500 bg-red-50 rounded-2xl hover:bg-red-500 hover:text-white transition-all shadow-inner"><Trash2 size={20}/></button>
+                          <button onClick={() => { if(window.confirm('¿Borrar permanentemente de Supabase?')) deleteProduct(p.id!).then(refreshData); }} className="p-4 text-red-500 bg-red-50 rounded-2xl hover:bg-red-500 hover:text-white transition-all shadow-inner"><Trash2 size={20}/></button>
                         </div>
                       </td>
                     </tr>
@@ -315,7 +321,7 @@ const AdminPage: React.FC = () => {
           <div className="bg-white rounded-[3rem] w-full max-w-4xl overflow-hidden shadow-2xl border border-white/20 animate-in zoom-in-95">
             <div className="flex items-center justify-between p-10 border-b border-gray-50">
               <h3 className="text-3xl font-black text-primary flex items-center gap-5 tracking-tighter">
-                <Package className="text-accent" /> {currentProduct.id ? 'Editar Producto' : 'Nuevo Registro'}
+                <Package className="text-accent" /> {currentProduct.id ? 'Edición de Producto' : 'Nuevo Producto'}
               </h3>
               <button onClick={() => setIsEditing(false)} className="p-4 bg-offwhite text-gray-400 rounded-full hover:bg-gray-100 transition-all">
                 <X size={28}/>
@@ -325,38 +331,38 @@ const AdminPage: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
                 <div className="space-y-8">
                   <div>
-                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Nombre Comercial</label>
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Nombre del Producto</label>
                     <input type="text" required className="w-full px-8 py-6 rounded-2xl bg-offwhite font-bold outline-none border border-transparent focus:border-primary/10 transition-all" value={currentProduct.nombre} onChange={e => setCurrentProduct({...currentProduct, nombre: e.target.value})} />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Precio USD</label>
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Precio Ref. (USD)</label>
                     <input type="number" step="0.01" required className="w-full px-8 py-6 rounded-2xl bg-offwhite font-black text-xl outline-none" value={currentProduct.precio} onChange={e => setCurrentProduct({...currentProduct, precio: parseFloat(e.target.value)})} />
                   </div>
                   <div className="grid grid-cols-2 gap-6">
                     <div>
-                      <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Depto</label>
+                      <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Departamento</label>
                       <input type="text" required className="w-full px-8 py-6 rounded-2xl bg-offwhite font-bold outline-none" value={currentProduct.departamento} onChange={e => setCurrentProduct({...currentProduct, departamento: e.target.value})} />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Cat Filtro</label>
+                      <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Categoría</label>
                       <input type="text" required className="w-full px-8 py-6 rounded-2xl bg-offwhite font-bold outline-none" value={currentProduct.categoria} onChange={e => setCurrentProduct({...currentProduct, categoria: e.target.value})} />
                     </div>
                   </div>
                 </div>
                 <div className="space-y-8">
                   <div>
-                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Visualización (Cloud Storage)</label>
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Imagen (Cloud Storage)</label>
                     <div className="relative h-72 bg-offwhite border-4 border-dashed border-gray-100 rounded-[2.5rem] flex flex-col items-center justify-center overflow-hidden group shadow-inner">
                       {currentProduct.imagen_url ? (
-                        <img src={currentProduct.imagen_url} className="w-full h-full object-contain p-6 mix-blend-multiply" />
+                        <img src={currentProduct.imagen_url} className="w-full h-full object-contain p-6 mix-blend-multiply" alt="Vista previa" />
                       ) : (
                         <div className="text-center p-8">
                           <Upload size={48} className="mx-auto text-gray-200 mb-4" />
-                          <p className="text-[9px] font-black text-gray-300 uppercase tracking-[0.2em]">Seleccionar Imagen</p>
+                          <p className="text-[9px] font-black text-gray-300 uppercase tracking-[0.2em]">Cargar Archivo</p>
                         </div>
                       )}
                       <button type="button" onClick={() => fileInputRef.current?.click()} className="absolute inset-0 bg-primary/80 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center text-white font-black text-[12px] uppercase tracking-widest backdrop-blur-sm">
-                        Subir Nueva
+                        Seleccionar Imagen
                       </button>
                       <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} />
                       {uploadingImg && <div className="absolute inset-0 bg-white/95 flex items-center justify-center z-20"><RefreshCw className="animate-spin text-accent" /></div>}
@@ -365,7 +371,7 @@ const AdminPage: React.FC = () => {
                 </div>
               </div>
               <button type="submit" className="w-full bg-primary text-white py-8 rounded-[2.5rem] font-black uppercase text-base tracking-[0.4em] mt-12 shadow-2xl hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-6">
-                <CheckCircle size={32}/> Confirmar Registro
+                <CheckCircle size={32}/> Guardar Cambios
               </button>
             </form>
           </div>
