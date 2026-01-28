@@ -1,103 +1,121 @@
+
 import { createClient } from '@supabase/supabase-js';
 import { SUPABASE_URL, SUPABASE_KEY } from '../constants';
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-export const saveOrderToSupabase = async (order: any) => {
-  // Consolidamos la información para que coincida con el esquema esperado por el script v10.1.2
-  // El error PGRST204 confirmaba que 'status' no existe, se cambia a 'estado'
-  
-  const payload = {
-    id_pedido: order.id_pedido || `PED-${Date.now()}`,
-    telefono_cliente: order.telefono, // Cambiado de 'telefono' a 'telefono_cliente'
-    nombre_cliente: order.nombre,
-    direccion_entrega: order.direccion,
-    productos: order.productos, 
-    total: order.total,
-    metodo_pago: order.metodo_pago,
-    notas: order.notas || '',
-    estado: 'PENDIENTE', // Cambiado de 'status' a 'estado'
-    fecha_pedido: new Date().toISOString(),
-    departamento: order.productos[0]?.departamento || 'General'
-  };
+// --- PRODUCTOS ---
+export const fetchProducts = async () => {
+  const { data, error } = await supabase
+    .from('productos')
+    .select('*')
+    .order('nombre', { ascending: true });
+  if (error) throw error;
+  return data;
+};
 
+export const upsertProduct = async (product: any) => {
+  // Aseguramos que los nombres de columnas coincidan con el esquema v11.0
+  const payload = {
+    ...product,
+    imagen_url: product.imagen_url || product.imagenurl // Normalización
+  };
+  
+  const { data, error } = await supabase
+    .from('productos')
+    .upsert([payload]);
+  if (error) throw error;
+  return data;
+};
+
+export const deleteProduct = async (id: string) => {
+  const { error } = await supabase
+    .from('productos')
+    .delete()
+    .eq('id', id);
+  if (error) throw error;
+};
+
+// --- IMÁGENES (STORAGE) ---
+export const uploadProductImage = async (file: File) => {
+  const fileExt = file.name.split('.').pop();
+  const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+  const filePath = `catalog/${fileName}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from('producto-imagenes')
+    .upload(filePath, file);
+
+  if (uploadError) throw uploadError;
+
+  const { data } = supabase.storage
+    .from('producto-imagenes')
+    .getPublicUrl(filePath);
+
+  return data.publicUrl;
+};
+
+// --- CONFIGURACIÓN ---
+export const fetchAllConfig = async () => {
+  const { data, error } = await supabase.from('config').select('*');
+  if (error) throw error;
+  const configMap: any = {};
+  data.forEach(item => { configMap[item.llave] = item.valor; });
+  return configMap;
+};
+
+export const fetchConfigValue = async (key: string) => {
+  const { data, error } = await supabase
+    .from('config')
+    .select('valor')
+    .eq('llave', key)
+    .maybeSingle();
+  if (error) return null;
+  return data?.valor || null;
+};
+
+export const updateConfigValue = async (key: string, value: string) => {
+  const { error } = await supabase
+    .from('config')
+    .upsert({ llave: key, valor: value }, { onConflict: 'llave' });
+  if (error) throw error;
+};
+
+// --- DEPARTAMENTOS ---
+export const fetchDepts = async () => {
+  const { data, error } = await supabase.from('departamentos').select('*');
+  if (error) throw error;
+  return data;
+};
+
+// --- PEDIDOS ---
+export const saveOrderToSupabase = async (order: any) => {
   const { data, error } = await supabase
     .from('pedidos')
-    .insert([payload]);
-    
-  if (error) {
-    console.error('Supabase Insert Error:', error);
-    // Si falla por columnas específicas, intentamos un insert ultra-mínimo
-    if (error.code === 'PGRST204') {
-      console.warn('Re-intentando insert simplificado...');
-      const simplifiedPayload: any = {
-        telefono_cliente: order.telefono,
-        total: order.total,
-        productos: order.productos,
-        estado: 'PENDIENTE'
-      };
-      const { data: retryData, error: retryError } = await supabase
-        .from('pedidos')
-        .insert([simplifiedPayload]);
-      if (retryError) throw retryError;
-      return retryData;
-    }
-    throw error;
-  }
+    .insert([{
+      id_pedido: order.id_pedido || `PED-${Date.now()}`,
+      telefono_cliente: order.telefono,
+      nombre_cliente: order.nombre,
+      direccion_entrega: order.direccion,
+      productos: order.productos,
+      total: order.total,
+      metodo_pago: order.metodo_pago,
+      notas: order.notas,
+      estado: order.estado || 'Pendiente',
+      fecha_pedido: new Date().toISOString(),
+      departamento: order.departamento
+    }]);
+  if (error) throw error;
   return data;
 };
 
 export const fetchOrdersFromSupabase = async (phone?: string) => {
-  try {
-    // Intentamos buscar por 'telefono_cliente' que es el estándar del script v10.1.2
-    let query = supabase.from('pedidos').select('*');
-    
-    if (phone) {
-      // Limpiar el teléfono para la búsqueda
-      const cleanPhone = phone.replace(/\D/g, '');
-      // Buscamos tanto en 'telefono_cliente' como en 'telefono' por si acaso
-      query = query.or(`telefono_cliente.eq.${cleanPhone},telefono.eq.${cleanPhone}`);
-    }
-    
-    const { data, error } = await query.order('id_pedido', { ascending: false });
-    
-    if (error) {
-      // Si falla el ordenamiento por created_at o id_pedido, traemos sin orden
-      console.warn('Error en query avanzada, intentando básica:', error.message);
-      const simpleQuery = supabase.from('pedidos').select('*');
-      if (phone) {
-        const cleanPhone = phone.replace(/\D/g, '');
-        simpleQuery.or(`telefono_cliente.eq.${cleanPhone},telefono.eq.${cleanPhone}`);
-      }
-      const { data: simpleData, error: simpleError } = await simpleQuery;
-      if (simpleError) throw simpleError;
-      return simpleData;
-    }
-    return data;
-  } catch (err) {
-    console.error('Supabase Fetch Error:', err);
-    throw err;
+  let query = supabase.from('pedidos').select('*').order('fecha_pedido', { ascending: false });
+  if (phone) {
+    const cleanPhone = phone.replace(/\D/g, '');
+    query = query.eq('telefono_cliente', cleanPhone);
   }
-};
-
-export const updateTasaSupabase = async (newTasa: number) => {
-  const { error } = await supabase
-    .from('config')
-    .upsert({ llave: 'tasa_cambio', valor: newTasa.toString() }, { onConflict: 'llave' });
+  const { data, error } = await query;
   if (error) throw error;
-};
-
-export const fetchConfigFromSupabase = async (key: string): Promise<string | null> => {
-  try {
-    const { data, error } = await supabase
-      .from('config')
-      .select('valor')
-      .eq('llave', key)
-      .single();
-    
-    if (error) return null;
-    return data?.valor || null;
-  } catch (e) {
-    return null;
-  }
+  return data;
 };

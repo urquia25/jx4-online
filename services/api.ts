@@ -1,127 +1,62 @@
 
-import { GAS_URL } from '../constants';
-import { Order, Product } from '../types';
+import * as sb from './supabase';
+import { Order } from '../types';
 
-/**
- * Obtiene todos los datos sincronizados desde Google Apps Script v10.1.2
- */
-export const fetchAppData = async (): Promise<any> => {
+export const fetchAppData = async () => {
   try {
-    const response = await fetch(`${GAS_URL}?action=all_data&_t=${Date.now()}`);
-    if (!response.ok) throw new Error('Fallo de conexión con JX4 Cloud');
-    
-    const result = await response.json();
-    
-    if (result.success && result.data) {
-      const { productos, departamentos, config, cintillo, tasa_cambio } = result.data;
+    const [productos, departamentos, config] = await Promise.all([
+      sb.fetchProducts(),
+      sb.fetchDepts(),
+      sb.fetchAllConfig()
+    ]);
 
-      return {
-        productos: productos || [],
-        departamentos: departamentos || [],
-        config: config || {},
-        cintillo: cintillo || [],
-        tasa_cambio: parseFloat(tasa_cambio) || parseFloat(config?.tasa_cambio) || 36.5
-      };
-    }
-    throw new Error('Estructura de datos inválida desde el servidor');
+    // Adaptamos los nombres de los campos de Supabase a los tipos de la App
+    const normalizedProducts = (productos || []).map((p: any) => ({
+      ...p,
+      imagenurl: p.imagen_url || p.imagenurl || ''
+    }));
+
+    return {
+      productos: normalizedProducts,
+      departamentos: departamentos || [],
+      config: config || {},
+      cintillo: config.cintillo ? [{ texto: config.cintillo, tipo: 'info' }] : [],
+      tasa_cambio: parseFloat(config.tasa_cambio) || 36.5
+    };
   } catch (error) {
-    console.error('API Error:', error);
+    console.error('Error fetching data from Supabase:', error);
     throw error;
   }
 };
 
-/**
- * Busca un cliente en la base de datos de Google Sheets
- */
 export const searchCustomer = async (phone: string) => {
   try {
-    const response = await fetch(`${GAS_URL}?action=buscar_cliente&telefono=${encodeURIComponent(phone)}`);
-    const result = await response.json();
-    return (result.success && result.data && result.data.encontrado) ? result.data.cliente : null;
-  } catch (error) {
-    return null;
-  }
-};
-
-/**
- * Crea un nuevo pedido en Google Sheets con compatibilidad total v10.1.2
- */
-export const createOrderInGAS = async (order: Order) => {
-  try {
-    const payload = { 
-      action: 'crear_pedido', 
-      telefono: order.telefono,
-      nombre: order.nombre,
-      direccion: order.direccion,
-      productos: order.productos.map(p => ({
-        id: p.id,
-        nombre: p.nombre,
-        precio: p.precio,
-        quantity: p.quantity, // Debe ser 'quantity' para el script GAS
-        unidad: p.unidad || 'und',
-        departamento: p.departamento || 'General'
-      })),
-      total: order.total,
-      metodo_pago: order.metodo_pago,
-      notas: order.notas
-    };
-
-    const response = await fetch(GAS_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify(payload)
-    });
-    
-    const result = await response.json();
-    if (!result.success) {
-      throw new Error(result.error || 'Error reportado por el servidor JX4');
+    const cleanPhone = phone.replace(/\D/g, '');
+    const orders = await sb.fetchOrdersFromSupabase(cleanPhone);
+    if (orders && orders.length > 0) {
+      // Retornamos el perfil más reciente
+      return {
+        nombre: orders[0].nombre_cliente,
+        direccion: orders[0].direccion_entrega
+      };
     }
-    return result;
-  } catch (error: any) {
-    console.error('GAS Order Error:', error);
-    throw error;
+  } catch (e) {
+    console.warn('Error buscando cliente en historial:', e);
   }
+  return null;
 };
 
-/**
- * Actualiza la tasa de cambio global en GAS
- */
+export const createOrderInGAS = async (order: Order) => {
+  // En v11.0, esta función simplemente guarda en Supabase
+  const id_pedido = `PED-${Date.now()}`;
+  await sb.saveOrderToSupabase({ ...order, id_pedido });
+  return { success: true, order_id: id_pedido };
+};
+
 export const updateExchangeRateInGAS = async (newTasa: number) => {
-  try {
-    const response = await fetch(GAS_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({ 
-        action: 'actualizar_tasa', 
-        tasa: newTasa
-      })
-    });
-    if (!response.ok) throw new Error('Error al actualizar en JX4 Cloud');
-    return await response.json();
-  } catch (error) {
-    console.error('GAS Update Tasa Error:', error);
-    throw error;
-  }
+  return await sb.updateConfigValue('tasa_cambio', newTasa.toString());
 };
 
-// Fix: Rename updateConfigInGAS to updateCintilloInGAS to fix the error in AdminPage.tsx
-/**
- * Actualiza el texto del cintillo en GAS
- */
 export const updateCintilloInGAS = async (value: string) => {
-  try {
-    const response = await fetch(GAS_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({ 
-        action: 'actualizar_config', 
-        clave: 'cintillo',
-        valor: value
-      })
-    });
-    return await response.json();
-  } catch (error) {
-    console.error('GAS Update Cintillo Error:', error);
-    throw error;
-  }
+  return await sb.updateConfigValue('cintillo', value);
 };

@@ -1,7 +1,7 @@
+
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { Product, Config, Category } from '../types';
 import { fetchAppData } from '../services/api';
-import { fetchConfigFromSupabase } from '../services/supabase';
 
 interface AppContextType {
   products: Product[];
@@ -33,32 +33,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         
         if (Array.isArray(data.departamentos)) {
           setCategories(data.departamentos.map((d: any) => ({
-            nombre: d.NOMBRE || d.nombre || 'General',
-            telefono: d.TELEFONO || d.telefono || null
+            nombre: d.nombre || 'General',
+            telefono: d.telefono_whatsapp || d.telefono || null
           })));
         }
         
-        // Procesar Cintillo
-        if (Array.isArray(data.cintillo) && data.cintillo.length > 0) {
-          const firstCintillo = data.cintillo[0];
-          const texto = firstCintillo.texto || firstCintillo.TEXTO;
-          if (texto) setCintillo(texto);
-        }
-
-        let tasaFinal = data.tasa_cambio;
-        if (tasaFinal === 36.5 || !tasaFinal || isNaN(tasaFinal)) {
-          const supabaseTasaStr = await fetchConfigFromSupabase('tasa_cambio');
-          if (supabaseTasaStr) {
-            const parsed = parseFloat(supabaseTasaStr);
-            if (!isNaN(parsed) && parsed > 1) {
-              tasaFinal = parsed;
-            }
-          }
+        if (data.config?.cintillo) {
+          setCintillo(data.config.cintillo);
         }
 
         setConfig({
           ...data.config,
-          tasa_cambio: tasaFinal || 36.5,
+          tasa_cambio: parseFloat(data.config.tasa_cambio) || 36.5,
           whatsapp_principal: data.config.whatsapp_principal || '584241208234'
         });
 
@@ -66,7 +52,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     } catch (err) {
       console.error('Refresh Error:', err);
-      setError('Error al sincronizar datos.');
+      setError('Error al sincronizar datos con el servidor.');
     } finally {
       setLoading(false);
     }
