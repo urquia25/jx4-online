@@ -1,9 +1,27 @@
 
 // Configuración de Entorno JX4 v11.0 - Supabase Native
-const env = (import.meta as any).env || {};
 
-export const SUPABASE_URL = env.VITE_SUPABASE_URL || 'https://dpnpnqnvfkwipmgyphmx.supabase.co';
-export const SUPABASE_KEY = env.VITE_SUPABASE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwbnBucW52Zmt3aXBtZ3lwaG14Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg5ODk3NTYsImV4cCI6MjA4NDU2NTc1Nn0.lxGo8CLyhGdBxHgnn8topqy1nPtxTKmaspTZ-G9Sde8';
+/**
+ * Obtiene de forma segura el objeto de variables de entorno.
+ * Previene errores de 'undefined' en entornos donde import.meta.env no existe.
+ */
+const getSafeEnv = () => {
+  try {
+    const meta = import.meta as any;
+    if (meta && meta.env) {
+      return meta.env;
+    }
+    return {};
+  } catch (e) {
+    return {};
+  }
+};
+
+const env = getSafeEnv();
+
+// Priorizamos variables de entorno de Vite o genéricas, con fallback a la instancia de producción
+export const SUPABASE_URL = env.VITE_SUPABASE_URL || env.SUPABASE_URL || 'https://dpnpnqnvfkwipmgyphmx.supabase.co';
+export const SUPABASE_KEY = env.VITE_SUPABASE_KEY || env.SUPABASE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwbnBucW52Zmt3aXBtZ3lwaG14Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg5ODk3NTYsImV4cCI6MjA4NDU2NTc1Nn0.lxGo8CLyhGdBxHgnn8topqy1nPtxTKmaspTZ-G9Sde8';
 
 // Credenciales de administración
 export const ADMIN_USER = 'jjtovar1006';

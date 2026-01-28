@@ -23,10 +23,10 @@ const AdminPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [ordersHistory, setOrdersHistory] = useState<any[]>([]);
   
-  // Product Form State
+  // Product Form State - Standardized to imagenurl
   const [isEditing, setIsEditing] = useState(false);
   const [currentProduct, setCurrentProduct] = useState<any>({
-    nombre: '', precio: 0, categoria: '', departamento: '', descripcion: '', imagen_url: '', disponible: true, unidad: 'und'
+    nombre: '', precio: 0, categoria: '', departamento: '', descripcion: '', imagenurl: '', disponible: true, unidad: 'und'
   });
   const [uploadingImg, setUploadingImg] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -61,12 +61,18 @@ const AdminPage: React.FC = () => {
   const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await upsertProduct(currentProduct);
+      // Limpiamos el objeto para asegurar que enviamos los campos correctos a Supabase
+      const productToSave = { ...currentProduct };
+      // Eliminamos cualquier rastro de la columna errónea si existe en el estado local
+      delete (productToSave as any).imagen_url;
+
+      await upsertProduct(productToSave);
       alert('Producto guardado exitosamente en Supabase');
       setIsEditing(false);
       refreshData();
     } catch (err: any) {
-      alert('Error al guardar: ' + err.message);
+      console.error('Save error:', err);
+      alert('Error al guardar: ' + (err.message || 'Error desconocido de Supabase'));
     }
   };
 
@@ -76,7 +82,7 @@ const AdminPage: React.FC = () => {
     setUploadingImg(true);
     try {
       const url = await uploadProductImage(file);
-      setCurrentProduct({ ...currentProduct, imagen_url: url });
+      setCurrentProduct({ ...currentProduct, imagenurl: url });
     } catch (err: any) {
       alert('Error al subir imagen: ' + err.message);
     } finally {
@@ -107,7 +113,8 @@ const AdminPage: React.FC = () => {
               departamento: row.Departamento || row.departamento || 'General',
               unidad: row.Unidad || row.unidad || 'und',
               disponible: true,
-              descripcion: row.Descripcion || row.descripcion || ''
+              descripcion: row.Descripcion || row.descripcion || '',
+              imagenurl: row.Imagen || row.imagenurl || ''
             });
             count++;
           } catch (err) { console.error('Error importando fila', err); }
@@ -265,7 +272,7 @@ const AdminPage: React.FC = () => {
           <div className="flex flex-col lg:flex-row gap-8 justify-between items-center bg-white p-8 rounded-custom border border-gray-50 shadow-sm">
              <div className="flex gap-4 w-full lg:w-auto">
                <button 
-                onClick={() => { setIsEditing(true); setCurrentProduct({ nombre: '', precio: 0, categoria: '', departamento: '', descripcion: '', imagen_url: '', disponible: true, unidad: 'und' }); }} 
+                onClick={() => { setIsEditing(true); setCurrentProduct({ nombre: '', precio: 0, categoria: '', departamento: '', descripcion: '', imagenurl: '', disponible: true, unidad: 'und' }); }} 
                 className="flex-1 lg:flex-none bg-primary text-white px-10 py-6 rounded-2xl font-black uppercase text-[11px] tracking-widest flex items-center justify-center gap-4 shadow-xl hover:scale-105 transition-all"
                >
                  <Plus size={22}/> Nuevo Producto
@@ -335,7 +342,7 @@ const AdminPage: React.FC = () => {
                       <td className="px-10 py-6 text-right">
                         <div className="flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all translate-x-4 group-hover:translate-x-0">
                           <button 
-                            onClick={() => { setCurrentProduct({...p, imagen_url: p.imagenurl}); setIsEditing(true); }} 
+                            onClick={() => { setCurrentProduct({...p}); setIsEditing(true); }} 
                             className="p-4 text-primary bg-offwhite rounded-2xl hover:bg-primary hover:text-white transition-all shadow-inner"
                           >
                             <Edit3 size={20}/>
@@ -413,8 +420,8 @@ const AdminPage: React.FC = () => {
                   <div>
                     <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-3">Imagen del Producto (Storage)</label>
                     <div className="relative h-72 bg-offwhite border-4 border-dashed border-gray-100 rounded-[2.5rem] flex flex-col items-center justify-center overflow-hidden group shadow-inner">
-                      {currentProduct.imagen_url || currentProduct.imagenurl ? (
-                        <img src={currentProduct.imagen_url || currentProduct.imagenurl} className="w-full h-full object-contain mix-blend-multiply p-6" />
+                      {currentProduct.imagenurl ? (
+                        <img src={currentProduct.imagenurl} className="w-full h-full object-contain mix-blend-multiply p-6" />
                       ) : (
                         <div className="text-center p-12">
                           <Upload size={64} className="mx-auto text-gray-200 mb-6" />
