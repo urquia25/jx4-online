@@ -2,11 +2,11 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { 
   LayoutDashboard, TrendingUp, History, ShieldAlert, LogOut, 
-  RefreshCw, Save, Megaphone, Plus, Trash2, Edit3, Upload, FileText, CheckCircle, Package, Search, X, PieChart, ShoppingBag, Activity, Server
+  RefreshCw, Save, Megaphone, Plus, Trash2, Edit3, Upload, FileText, CheckCircle, Package, Search, X, PieChart, ShoppingBag, Activity, Server, Send, Play
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useAppContext } from '../contexts/AppContext';
-import { upsertProduct, deleteProduct, uploadProductImage, fetchOrdersFromSupabase, checkSystemHealth } from '../services/supabase';
+import { upsertProduct, deleteProduct, uploadProductImage, fetchOrdersFromSupabase, checkSystemHealth, saveOrderToSupabase } from '../services/supabase';
 import { updateExchangeRateInGAS, updateCintilloInGAS } from '../services/api';
 import { formatCurrency } from '../utils/formatters';
 import * as XLSX from 'xlsx';
@@ -24,6 +24,7 @@ const AdminPage: React.FC = () => {
   const [ordersHistory, setOrdersHistory] = useState<any[]>([]);
   const [healthStatus, setHealthStatus] = useState<any>(null);
   const [checkingHealth, setCheckingHealth] = useState(false);
+  const [testSyncResult, setTestSyncResult] = useState<{status: 'idle' | 'loading' | 'success' | 'error', message?: string}>({status: 'idle'});
   
   const [isEditing, setIsEditing] = useState(false);
   const [currentProduct, setCurrentProduct] = useState<any>({
@@ -50,6 +51,29 @@ const AdminPage: React.FC = () => {
       console.error('Health check error:', e);
     } finally {
       setCheckingHealth(false);
+    }
+  };
+
+  const handleTestSync = async () => {
+    setTestSyncResult({status: 'loading'});
+    try {
+      const mockOrder = {
+        id_pedido: `TEST-${Math.floor(Math.random() * 10000)}`,
+        telefono: '0000000000',
+        nombre: 'TEST USER ADMIN',
+        direccion: 'DIRECCION DE PRUEBA SISTEMA JX4',
+        productos: [{nombre: 'Producto Test', quantity: 1, precio: 1.0, departamento: 'Test'}],
+        total: 1.0,
+        metodo_pago: 'efectivo',
+        notas: 'Prueba de sincronización técnica v11',
+        departamento: 'Prueba Técnica'
+      };
+      
+      await saveOrderToSupabase(mockOrder);
+      setTestSyncResult({status: 'success', message: `Pedido ${mockOrder.id_pedido} sincronizado correctamente con departamento "${mockOrder.departamento}".`});
+      fetchOrdersFromSupabase().then(setOrdersHistory);
+    } catch (err: any) {
+      setTestSyncResult({status: 'error', message: err.message || 'Error desconocido al sincronizar pedido.'});
     }
   };
 
@@ -213,45 +237,74 @@ const AdminPage: React.FC = () => {
       )}
 
       {activeTab === 'health' && (
-        <div className="bg-white rounded-custom p-12 shadow-sm border border-gray-100">
-          <div className="flex justify-between items-center mb-10">
-            <h3 className="text-2xl font-black text-primary flex items-center gap-4"><Server className="text-accent" /> Salud de Supabase</h3>
-            <button onClick={handleCheckHealth} disabled={checkingHealth} className="p-4 bg-offwhite rounded-full hover:bg-gray-100 transition-all disabled:opacity-50">
-              <RefreshCw className={checkingHealth ? 'animate-spin' : ''} />
-            </button>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+          <div className="lg:col-span-2 bg-white rounded-custom p-12 shadow-sm border border-gray-100">
+            <div className="flex justify-between items-center mb-10">
+              <h3 className="text-2xl font-black text-primary flex items-center gap-4"><Server className="text-accent" /> Diagnóstico Supabase</h3>
+              <button onClick={handleCheckHealth} disabled={checkingHealth} className="p-4 bg-offwhite rounded-full hover:bg-gray-100 transition-all disabled:opacity-50">
+                <RefreshCw className={checkingHealth ? 'animate-spin' : ''} />
+              </button>
+            </div>
+            
+            {healthStatus ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="p-8 bg-offwhite rounded-3xl border border-gray-50 shadow-inner">
+                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Conexión DB</p>
+                  <div className="flex items-center gap-2">
+                    <div className={`w-3 h-3 rounded-full ${healthStatus.ok ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                    <p className={`text-xl font-black ${healthStatus.ok ? 'text-green-600' : 'text-red-600'}`}>{healthStatus.ok ? 'ESTABLE' : 'FALLO'}</p>
+                  </div>
+                </div>
+                <div className="p-8 bg-offwhite rounded-3xl border border-gray-50 shadow-inner">
+                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Total Productos</p>
+                  <p className="text-xl font-black text-primary">{healthStatus.counts?.productos || 0}</p>
+                </div>
+                <div className="p-8 bg-offwhite rounded-3xl border border-gray-50 shadow-inner">
+                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Pedidos Totales</p>
+                  <p className="text-xl font-black text-primary">{healthStatus.counts?.pedidos || 0}</p>
+                </div>
+                <div className="p-8 bg-offwhite rounded-3xl border border-gray-50 shadow-inner">
+                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Esquema Imagen</p>
+                  <div className="flex items-center gap-2">
+                    <div className={`w-3 h-3 rounded-full ${healthStatus.imagen_url_column_exists ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                    <p className="text-sm font-black text-primary">{healthStatus.imagen_url_column_exists ? 'Campo OK' : 'No Detectado'}</p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="py-20 text-center">
+                <Activity size={48} className="mx-auto text-gray-100 mb-6 animate-pulse" />
+                <p className="font-black text-gray-300 uppercase text-[10px] tracking-widest">Consultando Edge Function...</p>
+              </div>
+            )}
           </div>
-          
-          {healthStatus ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              <div className="p-8 bg-offwhite rounded-3xl border border-gray-50 shadow-inner">
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Conexión DB</p>
-                <div className="flex items-center gap-2">
-                  <div className={`w-3 h-3 rounded-full ${healthStatus.ok ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                  <p className={`text-xl font-black ${healthStatus.ok ? 'text-green-600' : 'text-red-600'}`}>{healthStatus.ok ? 'ESTABLE' : 'FALLO'}</p>
-                </div>
+
+          <div className="bg-white rounded-custom p-12 shadow-sm border border-gray-100 flex flex-col">
+            <h3 className="text-2xl font-black text-primary mb-10 flex items-center gap-4"><Send className="text-accent" /> Test Sync</h3>
+            <p className="text-xs text-gray-400 font-bold leading-relaxed mb-8">
+              Ejecuta una inserción de prueba en la tabla <code className="text-primary bg-offwhite px-2 py-1 rounded">pedidos</code> para validar las políticas de RLS y la integridad del campo <code className="text-primary bg-offwhite px-2 py-1 rounded">departamento</code>.
+            </p>
+            
+            <button 
+              onClick={handleTestSync}
+              disabled={testSyncResult.status === 'loading'}
+              className="w-full bg-primary text-white py-6 rounded-2xl font-black uppercase text-[11px] tracking-widest shadow-xl flex items-center justify-center gap-4 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50"
+            >
+              {testSyncResult.status === 'loading' ? <RefreshCw className="animate-spin" size={18} /> : <Play size={18} />}
+              Probar Sincronización
+            </button>
+
+            {testSyncResult.status !== 'idle' && (
+              <div className={`mt-8 p-6 rounded-2xl border ${
+                testSyncResult.status === 'success' ? 'bg-green-50 border-green-100 text-green-700' : 'bg-red-50 border-red-100 text-red-700'
+              } animate-in fade-in slide-in-from-top-2`}>
+                <p className="text-[10px] font-black uppercase tracking-widest mb-2">Resultado:</p>
+                <p className="text-xs font-bold leading-relaxed">
+                  {testSyncResult.message}
+                </p>
               </div>
-              <div className="p-8 bg-offwhite rounded-3xl border border-gray-50 shadow-inner">
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Total Productos</p>
-                <p className="text-xl font-black text-primary">{healthStatus.counts?.productos || 0}</p>
-              </div>
-              <div className="p-8 bg-offwhite rounded-3xl border border-gray-50 shadow-inner">
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Pedidos Totales</p>
-                <p className="text-xl font-black text-primary">{healthStatus.counts?.pedidos || 0}</p>
-              </div>
-              <div className="p-8 bg-offwhite rounded-3xl border border-gray-50 lg:col-span-3 shadow-inner">
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Esquema de Datos</p>
-                <div className="flex items-center gap-4">
-                  <div className={`w-4 h-4 rounded-full ${healthStatus.imagen_url_column_exists ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                  <span className="font-bold text-primary">Campo 'imagen_url': {healthStatus.imagen_url_column_exists ? 'Válido' : 'Faltante'}</span>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="py-20 text-center">
-              <Activity size={48} className="mx-auto text-gray-100 mb-6 animate-pulse" />
-              <p className="font-black text-gray-300 uppercase text-[10px] tracking-widest">Sincronizando con Edge Function...</p>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       )}
 

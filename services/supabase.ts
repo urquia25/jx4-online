@@ -21,6 +21,7 @@ export const upsertProduct = async (product: Partial<Product>) => {
     delete cleanedProduct.id;
   }
 
+  // Se elimina 'stock' del payload para evitar error de columna inexistente
   const payload = {
     nombre: cleanedProduct.nombre,
     precio: cleanedProduct.precio,
@@ -29,8 +30,7 @@ export const upsertProduct = async (product: Partial<Product>) => {
     descripcion: cleanedProduct.descripcion,
     imagen_url: cleanedProduct.imagen_url,
     disponible: cleanedProduct.disponible,
-    unidad: cleanedProduct.unidad,
-    stock: cleanedProduct.stock || 0
+    unidad: cleanedProduct.unidad
   };
 
   const { data, error } = await supabase
