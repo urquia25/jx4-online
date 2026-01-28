@@ -2,13 +2,13 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { 
   LayoutDashboard, TrendingUp, History, ShieldAlert, LogOut, 
-  RefreshCw, Save, Megaphone, Plus, Trash2, Edit3, Upload, FileText, Download, CheckCircle, Package, Search, X, PieChart, ShoppingBag
+  RefreshCw, Save, Megaphone, Plus, Trash2, Edit3, Upload, FileText, CheckCircle, Package, Search, X, PieChart, ShoppingBag
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useAppContext } from '../contexts/AppContext';
 import { upsertProduct, deleteProduct, uploadProductImage, fetchOrdersFromSupabase } from '../services/supabase';
 import { updateExchangeRateInGAS, updateCintilloInGAS } from '../services/api';
-import { formatCurrency, formatBs } from '../utils/formatters';
+import { formatCurrency } from '../utils/formatters';
 import * as XLSX from 'xlsx';
 
 const AdminPage: React.FC = () => {
@@ -23,7 +23,6 @@ const AdminPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [ordersHistory, setOrdersHistory] = useState<any[]>([]);
   
-  // Product Form State - Standardized to imagenurl
   const [isEditing, setIsEditing] = useState(false);
   const [currentProduct, setCurrentProduct] = useState<any>({
     nombre: '', precio: 0, categoria: '', departamento: '', descripcion: '', imagenurl: '', disponible: true, unidad: 'und'
@@ -61,18 +60,13 @@ const AdminPage: React.FC = () => {
   const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      // Limpiamos el objeto para asegurar que enviamos los campos correctos a Supabase
-      const productToSave = { ...currentProduct };
-      // Eliminamos cualquier rastro de la columna errónea si existe en el estado local
-      delete (productToSave as any).imagen_url;
-
-      await upsertProduct(productToSave);
+      await upsertProduct(currentProduct);
       alert('Producto guardado exitosamente en Supabase');
       setIsEditing(false);
       refreshData();
     } catch (err: any) {
       console.error('Save error:', err);
-      alert('Error al guardar: ' + (err.message || 'Error desconocido de Supabase'));
+      alert('Error al guardar: ' + (err.message || 'Verifica que la columna imagenurl exista en tu tabla de Supabase'));
     }
   };
 
@@ -114,7 +108,7 @@ const AdminPage: React.FC = () => {
               unidad: row.Unidad || row.unidad || 'und',
               disponible: true,
               descripcion: row.Descripcion || row.descripcion || '',
-              imagenurl: row.Imagen || row.imagenurl || ''
+              imagenurl: row.Imagen || row.imagenurl || row.imagen_url || ''
             });
             count++;
           } catch (err) { console.error('Error importando fila', err); }
@@ -348,7 +342,7 @@ const AdminPage: React.FC = () => {
                             <Edit3 size={20}/>
                           </button>
                           <button 
-                            onClick={() => deleteProduct(p.id).then(refreshData)} 
+                            onClick={() => { if(confirm('¿Seguro?')) deleteProduct(p.id!).then(refreshData); }} 
                             className="p-4 text-red-500 bg-red-50 rounded-2xl hover:bg-red-500 hover:text-white transition-all shadow-inner"
                           >
                             <Trash2 size={20}/>

@@ -1,6 +1,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { SUPABASE_URL, SUPABASE_KEY } from '../constants';
+import { Product } from '../types';
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -11,14 +12,39 @@ export const fetchProducts = async () => {
     .select('*')
     .order('nombre', { ascending: true });
   if (error) throw error;
-  return data;
+  return data as Product[];
 };
 
-export const upsertProduct = async (product: any) => {
+export const upsertProduct = async (product: Partial<Product>) => {
+  // Limpieza de datos para evitar errores de tipo o columnas inexistentes
+  const cleanedProduct = { ...product };
+  
+  // Si el id es una cadena vacía o nulo, lo eliminamos para que Supabase genere uno nuevo
+  if (!cleanedProduct.id) {
+    delete cleanedProduct.id;
+  }
+
+  // Aseguramos que solo enviamos los campos que la tabla 'productos' espera
+  const payload = {
+    nombre: cleanedProduct.nombre,
+    precio: cleanedProduct.precio,
+    categoria: cleanedProduct.categoria,
+    departamento: cleanedProduct.departamento,
+    descripcion: cleanedProduct.descripcion,
+    imagenurl: cleanedProduct.imagenurl,
+    disponible: cleanedProduct.disponible,
+    unidad: cleanedProduct.unidad,
+    stock: cleanedProduct.stock || 0
+  };
+
   const { data, error } = await supabase
     .from('productos')
-    .upsert([product]);
-  if (error) throw error;
+    .upsert(cleanedProduct.id ? { ...payload, id: cleanedProduct.id } : payload);
+    
+  if (error) {
+    console.error('Supabase Upsert Error:', error);
+    throw error;
+  }
   return data;
 };
 
