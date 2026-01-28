@@ -6,7 +6,7 @@ export interface Product {
   categoria: string;
   departamento: string;
   descripcion: string;
-  imagenurl: string;
+  imagen_url: string;
   disponible: boolean;
   unidad: string;
   stock?: number;

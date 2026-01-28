@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { ShoppingCart, ImageIcon, Info, AlertCircle, X, ShoppingBag, Trash2, ArrowRight, Scale, AlertTriangle } from 'lucide-react';
 import { Product } from '../../types';
@@ -22,9 +23,9 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, exchangeRate }) => {
   
   const rawPrice = parseFloat(String(product.precio)) || 0;
   const priceInVes = rawPrice * (exchangeRate || 36.5);
-  const imageUrl = transformDriveUrl(product.imagenurl);
+  const imageUrl = transformDriveUrl(product.imagen_url);
 
-  // Lógica mejorada para detectar productos pesados
+  // Lógica para detectar productos pesados
   const isWeighted = product.unidad === 'kg' || 
                      ['carniceria', 'charcuteria', 'frutas', 'verduras', 'aves de corral', 'cerdo']
                      .some(cat => product.categoria?.toLowerCase().includes(cat));
@@ -48,23 +49,20 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, exchangeRate }) => {
 
   return (
     <div className="group relative bg-white rounded-3xl p-5 shadow-sm hover:shadow-xl transition-all duration-500 flex flex-col h-full border border-gray-50">
-      {/* Success Feedback */}
       {addedFeedback && (
         <div className="absolute inset-x-5 top-5 z-30 bg-primary text-white text-[10px] font-black uppercase py-2 px-4 rounded-xl flex items-center justify-center gap-2 animate-in fade-in slide-in-from-top-2">
-          <ShoppingBag size={12} /> Agregado a {product.categoria}
+          <ShoppingBag size={12} /> Agregado
         </div>
       )}
 
-      {/* Status Badge */}
       <div className={`absolute top-4 right-4 px-2.5 py-1 rounded-lg text-[8px] uppercase tracking-widest font-black z-20 shadow-sm ${
         product.disponible 
           ? 'bg-green-50 text-green-600' 
           : 'bg-red-50 text-red-600'
       }`}>
-        {product.disponible ? (isWeighted ? '✓ Venta por Kilo' : '✓ En Stock') : '✕ Agotado'}
+        {product.disponible ? (isWeighted ? '✓ Por Kilo' : '✓ En Stock') : '✕ Agotado'}
       </div>
       
-      {/* Image Container */}
       <div className="relative h-48 mb-6 overflow-hidden rounded-2xl bg-offwhite flex items-center justify-center border border-gray-50 p-2">
         {!imgError && imageUrl ? (
           <>
@@ -102,7 +100,6 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, exchangeRate }) => {
         )}
       </div>
       
-      {/* Content */}
       <div className="flex-1 flex flex-col">
           <p className="text-[9px] text-accent font-black uppercase tracking-widest mb-1 opacity-60">
             {product.categoria || 'Variado'}
@@ -128,11 +125,6 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, exchangeRate }) => {
                   <span className="text-xl font-black text-primary leading-none">
                     {formatCurrency(rawPrice)}
                   </span>
-                  {isWeighted && (
-                    <span className="inline-flex items-center gap-1 bg-amber-500 text-white px-2 py-0.5 rounded-lg text-[7px] font-black uppercase tracking-widest animate-pulse border border-amber-600/20">
-                      <AlertTriangle size={8} /> Referencial
-                    </span>
-                  )}
                 </div>
                 
                 <div className="flex flex-col">
@@ -140,11 +132,6 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, exchangeRate }) => {
                     {formatBs(priceInVes)}
                     <span className="text-[9px] text-gray-400 ml-1 font-bold">/ {isWeighted ? 'Kg' : 'Und'}</span>
                   </span>
-                  {isWeighted && (
-                    <p className="text-[8px] font-black text-amber-600 uppercase tracking-widest mt-1 flex items-center gap-1">
-                      <Scale size={10} /> Sujeto a pesaje final
-                    </p>
-                  )}
                 </div>
               </div>
               
@@ -163,7 +150,6 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, exchangeRate }) => {
           </div>
       </div>
 
-      {/* Conflict Modal */}
       {showConflictModal && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-6 bg-primary/40 backdrop-blur-md animate-in fade-in duration-300">
           <div className="bg-white rounded-[2.5rem] w-full max-w-md overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300">
@@ -172,28 +158,28 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, exchangeRate }) => {
                 <AlertCircle size={40} />
               </div>
               <h3 className="text-2xl font-black text-primary mb-4">Carrito Ocupado</h3>
-              <p className="text-sm text-gray-500 leading-relaxed font-medium mb-10 px-4">
-                Para agregar productos de <b className="text-accent">[{product.categoria}]</b>, primero debes finalizar o vaciar tu pedido actual de <b className="text-primary">[{cartDepartment}]</b>.
+              <p className="text-sm text-gray-500 mb-10 px-4">
+                Solo puedes agregar productos de un mismo departamento a la vez. Finaliza tu pedido actual para empezar uno nuevo.
               </p>
               
               <div className="flex flex-col gap-3">
                 <button 
                   onClick={() => navigate('/checkout')}
-                  className="w-full bg-primary text-white py-5 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl flex items-center justify-center gap-3"
+                  className="w-full bg-primary text-white py-5 rounded-2xl font-black uppercase text-[10px] tracking-widest"
                 >
-                  Ir a Finalizar Pedido <ArrowRight size={16}/>
+                  Ir a Finalizar Pedido <ArrowRight size={16} className="inline ml-2"/>
                 </button>
                 <button 
                   onClick={handleClearAndAdd}
-                  className="w-full bg-offwhite text-error py-5 rounded-2xl font-black uppercase text-[10px] tracking-widest border border-gray-100 flex items-center justify-center gap-3"
+                  className="w-full bg-offwhite text-error py-5 rounded-2xl font-black uppercase text-[10px] tracking-widest border border-gray-100"
                 >
-                  <Trash2 size={16}/> Empezar Carrito Nuevo
+                  Vaciar y Empezar Nuevo
                 </button>
                 <button 
                   onClick={() => setShowConflictModal(false)}
                   className="w-full py-4 text-gray-400 font-bold uppercase text-[9px] tracking-[0.2em]"
                 >
-                  Seguir Comprando Actual
+                  Cancelar
                 </button>
               </div>
             </div>
@@ -201,7 +187,6 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, exchangeRate }) => {
         </div>
       )}
 
-      {/* Description Modal */}
       {showFullDesc && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-300">
           <div className="bg-white rounded-[2rem] w-full max-w-sm overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300">
@@ -218,21 +203,10 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, exchangeRate }) => {
               <span className="text-[10px] font-black text-accent uppercase tracking-widest">{product.categoria}</span>
               <h3 className="text-2xl font-black text-primary mt-2 mb-4">{product.nombre}</h3>
               <p className="text-gray-500 text-sm leading-relaxed mb-6">
-                {product.descripcion || "No hay descripción adicional disponible."}
+                {product.descripcion || "Sin descripción adicional."}
               </p>
-              
               <div className="flex items-center justify-between border-t pt-6">
-                <div>
-                  <p className="text-xs text-gray-400 font-bold uppercase">Precio</p>
-                  <div className="flex items-center gap-2">
-                    <p className="text-xl font-black text-primary">{formatCurrency(rawPrice)}</p>
-                    {isWeighted && (
-                       <span className="bg-amber-500 text-white px-2 py-0.5 rounded text-[8px] font-black uppercase">
-                        Peso Referencial
-                       </span>
-                    )}
-                  </div>
-                </div>
+                <p className="text-xl font-black text-primary">{formatCurrency(rawPrice)}</p>
                 <button 
                   onClick={() => { handleAddToCart(); setShowFullDesc(false); }}
                   className="bg-primary text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2"
@@ -240,20 +214,6 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, exchangeRate }) => {
                   Agregar <ShoppingCart size={16} />
                 </button>
               </div>
-              
-              {isWeighted && (
-                <div className="mt-6 p-4 bg-amber-50 rounded-2xl border border-amber-100 flex items-start gap-3">
-                  <div className="p-2 bg-white rounded-lg shadow-sm">
-                    <Scale size={18} className="text-amber-600 flex-shrink-0" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-[10px] font-black text-amber-800 uppercase tracking-widest mb-1">Nota de Pesaje</p>
-                    <p className="text-[10px] font-medium text-amber-700 leading-relaxed">
-                      Este producto se factura según su peso exacto. El monto total podría variar ligeramente. Nuestro equipo te contactará para confirmar el peso final tras el pesaje.
-                    </p>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         </div>

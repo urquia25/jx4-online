@@ -27,7 +27,7 @@ const AdminPage: React.FC = () => {
   
   const [isEditing, setIsEditing] = useState(false);
   const [currentProduct, setCurrentProduct] = useState<any>({
-    nombre: '', precio: 0, categoria: '', departamento: '', descripcion: '', imagenurl: '', disponible: true, unidad: 'und'
+    nombre: '', precio: 0, categoria: '', departamento: '', descripcion: '', imagen_url: '', disponible: true, unidad: 'und'
   });
   const [uploadingImg, setUploadingImg] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -43,9 +43,14 @@ const AdminPage: React.FC = () => {
 
   const handleCheckHealth = async () => {
     setCheckingHealth(true);
-    const health = await checkSystemHealth();
-    setHealthStatus(health);
-    setCheckingHealth(false);
+    try {
+      const health = await checkSystemHealth();
+      setHealthStatus(health);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setCheckingHealth(false);
+    }
   };
 
   const metrics = useMemo(() => {
@@ -85,7 +90,7 @@ const AdminPage: React.FC = () => {
     setUploadingImg(true);
     try {
       const url = await uploadProductImage(file);
-      setCurrentProduct({ ...currentProduct, imagenurl: url });
+      setCurrentProduct({ ...currentProduct, imagen_url: url });
     } catch (err: any) {
       alert('Error: ' + err.message);
     } finally {
@@ -113,7 +118,7 @@ const AdminPage: React.FC = () => {
               unidad: row.Unidad || row.unidad || 'und',
               disponible: true,
               descripcion: row.Descripcion || row.descripcion || '',
-              imagenurl: row.Imagen || row.imagenurl || row.imagen_url || ''
+              imagen_url: row.Imagen || row.imagen_url || row.imagenurl || ''
             });
           } catch (err) {}
         }
@@ -130,14 +135,14 @@ const AdminPage: React.FC = () => {
 
   if (!isAdmin) {
     return (
-      <div className="max-w-md mx-auto py-32 px-4">
+      <div className="max-w-md mx-auto py-32 px-4 text-center">
         <div className="bg-white rounded-[2.5rem] p-12 shadow-2xl border border-gray-100">
           <ShieldAlert size={48} className="text-primary mb-10 mx-auto" />
-          <h2 className="text-3xl font-black text-center text-primary mb-10 tracking-tighter">Admin Access</h2>
+          <h2 className="text-3xl font-black text-primary mb-10">Admin Login</h2>
           <form onSubmit={handleLogin} className="space-y-6">
-            <input type="text" placeholder="Usuario" className="w-full px-8 py-5 rounded-2xl bg-offwhite border-none outline-none font-bold" value={user} onChange={e => setUser(e.target.value)} />
-            <input type="password" placeholder="Pass" className="w-full px-8 py-5 rounded-2xl bg-offwhite border-none outline-none font-bold" value={pass} onChange={e => setPass(e.target.value)} />
-            <button className="w-full bg-primary text-white py-5 rounded-2xl font-black uppercase text-[11px] tracking-widest">Entrar</button>
+            <input type="text" placeholder="Usuario" className="w-full px-8 py-5 rounded-2xl bg-offwhite outline-none font-bold" value={user} onChange={e => setUser(e.target.value)} />
+            <input type="password" placeholder="Pass" className="w-full px-8 py-5 rounded-2xl bg-offwhite outline-none font-bold" value={pass} onChange={e => setPass(e.target.value)} />
+            <button className="w-full bg-primary text-white py-5 rounded-2xl font-black uppercase text-[11px] tracking-widest shadow-xl">Entrar</button>
           </form>
         </div>
       </div>
@@ -152,8 +157,8 @@ const AdminPage: React.FC = () => {
             <LayoutDashboard size={40} />
           </div>
           <div>
-            <h2 className="text-4xl font-black text-primary tracking-tighter">Panel Maestro</h2>
-            <p className="text-gray-400 font-black uppercase text-[10px] tracking-[0.4em]">Supabase Native v11.0</p>
+            <h2 className="text-4xl font-black text-primary tracking-tighter">Panel de Control</h2>
+            <p className="text-gray-400 font-black uppercase text-[10px] tracking-[0.4em]">Gestión Supabase v11.0</p>
           </div>
         </div>
         <div className="flex gap-4">
@@ -168,7 +173,7 @@ const AdminPage: React.FC = () => {
 
       <div className="flex gap-4 mb-10 overflow-x-auto no-scrollbar py-2">
         {[
-          { id: 'config', label: 'Config', icon: <Save size={16}/> },
+          { id: 'config', label: 'Configuración', icon: <Save size={16}/> },
           { id: 'products', label: 'Inventario', icon: <Package size={16}/> },
           { id: 'metrics', label: 'Métricas', icon: <PieChart size={16}/> },
           { id: 'health', label: 'Salud Sistema', icon: <Activity size={16}/> }
@@ -177,7 +182,7 @@ const AdminPage: React.FC = () => {
             key={tab.id}
             onClick={() => setActiveTab(tab.id as any)} 
             className={`px-10 py-5 rounded-[2rem] font-black text-[11px] uppercase tracking-widest transition-all flex items-center gap-4 whitespace-nowrap ${
-              activeTab === tab.id ? 'bg-primary text-white shadow-xl' : 'bg-white text-gray-400 border border-gray-100'
+              activeTab === tab.id ? 'bg-primary text-white shadow-xl' : 'bg-white text-gray-400 border border-gray-100 hover:bg-gray-50'
             }`}
           >
             {tab.icon} {tab.label}
@@ -188,14 +193,14 @@ const AdminPage: React.FC = () => {
       {activeTab === 'config' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
           <div className="bg-white rounded-custom p-12 shadow-sm border border-gray-100">
-            <h3 className="text-2xl font-black text-primary mb-10 flex items-center gap-4"><TrendingUp className="text-accent" /> Tasa de Cambio</h3>
+            <h3 className="text-2xl font-black text-primary mb-10 flex items-center gap-4"><TrendingUp className="text-accent" /> Tasa de Cambio Global</h3>
             <input type="number" step="0.01" className="w-full px-8 py-8 rounded-[2rem] bg-offwhite text-4xl font-black text-primary outline-none mb-10" value={newTasa} onChange={e => setNewTasa(e.target.value)} />
-            <button onClick={() => updateExchangeRateInGAS(parseFloat(newTasa))} className="w-full bg-accent text-white py-8 rounded-[2rem] font-black uppercase text-[12px] tracking-[0.3em]">Guardar Tasa</button>
+            <button onClick={() => updateExchangeRateInGAS(parseFloat(newTasa))} className="w-full bg-accent text-white py-8 rounded-[2rem] font-black uppercase text-[12px] tracking-[0.3em] shadow-xl">Sincronizar Tasa</button>
           </div>
           <div className="bg-white rounded-custom p-12 shadow-sm border border-gray-100">
-            <h3 className="text-2xl font-black text-primary mb-10 flex items-center gap-4"><Megaphone /> Comunicado</h3>
-            <textarea rows={4} className="w-full px-8 py-8 rounded-[2rem] bg-offwhite font-bold outline-none mb-10" value={newCintillo} onChange={e => setNewCintillo(e.target.value)} />
-            <button onClick={() => updateCintilloInGAS(newCintillo)} className="w-full bg-primary text-white py-8 rounded-[2rem] font-black uppercase text-[12px] tracking-[0.3em]">Actualizar Cintillo</button>
+            <h3 className="text-2xl font-black text-primary mb-10 flex items-center gap-4"><Megaphone /> Comunicado Marquee</h3>
+            <textarea rows={4} className="w-full px-8 py-8 rounded-[2rem] bg-offwhite font-bold outline-none mb-10 resize-none" value={newCintillo} onChange={e => setNewCintillo(e.target.value)} />
+            <button onClick={() => updateCintilloInGAS(newCintillo)} className="w-full bg-primary text-white py-8 rounded-[2rem] font-black uppercase text-[12px] tracking-[0.3em] shadow-xl">Actualizar Cintillo</button>
           </div>
         </div>
       )}
@@ -203,39 +208,42 @@ const AdminPage: React.FC = () => {
       {activeTab === 'health' && (
         <div className="bg-white rounded-custom p-12 shadow-sm border border-gray-100">
           <div className="flex justify-between items-center mb-10">
-            <h3 className="text-2xl font-black text-primary flex items-center gap-4"><Server className="text-accent" /> Diagnóstico de Supabase</h3>
-            <button onClick={handleCheckHealth} disabled={checkingHealth} className="p-4 bg-offwhite rounded-full hover:bg-gray-100 transition-all">
+            <h3 className="text-2xl font-black text-primary flex items-center gap-4"><Server className="text-accent" /> Diagnóstico Supabase</h3>
+            <button onClick={handleCheckHealth} disabled={checkingHealth} className="p-4 bg-offwhite rounded-full hover:bg-gray-100 transition-all disabled:opacity-50">
               <RefreshCw className={checkingHealth ? 'animate-spin' : ''} />
             </button>
           </div>
           
           {healthStatus ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              <div className="p-8 bg-offwhite rounded-3xl border border-gray-50">
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Estado DB</p>
-                <p className={`text-xl font-black ${healthStatus.ok ? 'text-green-600' : 'text-red-600'}`}>{healthStatus.ok ? 'OPERATIVO' : 'ERROR'}</p>
+              <div className="p-8 bg-offwhite rounded-3xl border border-gray-50 shadow-inner">
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Estado General</p>
+                <div className="flex items-center gap-2">
+                  <div className={`w-3 h-3 rounded-full ${healthStatus.ok ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                  <p className={`text-xl font-black ${healthStatus.ok ? 'text-green-600' : 'text-red-600'}`}>{healthStatus.ok ? 'OPERATIVO' : 'CON FALLAS'}</p>
+                </div>
               </div>
-              <div className="p-8 bg-offwhite rounded-3xl border border-gray-50">
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Productos en Supabase</p>
+              <div className="p-8 bg-offwhite rounded-3xl border border-gray-50 shadow-inner">
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Productos Registrados</p>
                 <p className="text-xl font-black text-primary">{healthStatus.counts?.productos || 0}</p>
               </div>
-              <div className="p-8 bg-offwhite rounded-3xl border border-gray-50">
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Pedidos Registrados</p>
+              <div className="p-8 bg-offwhite rounded-3xl border border-gray-50 shadow-inner">
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Pedidos en DB</p>
                 <p className="text-xl font-black text-primary">{healthStatus.counts?.pedidos || 0}</p>
               </div>
-              <div className="p-8 bg-offwhite rounded-3xl border border-gray-50 lg:col-span-3">
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Estructura de Tabla 'productos'</p>
+              <div className="p-8 bg-offwhite rounded-3xl border border-gray-50 lg:col-span-3 shadow-inner">
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Verificación de Esquema</p>
                 <div className="flex items-center gap-4">
                   <div className={`w-4 h-4 rounded-full ${healthStatus.imagen_url_column_exists ? 'bg-green-500' : 'bg-red-500'}`}></div>
                   <span className="font-bold text-primary">Columna 'imagen_url' {healthStatus.imagen_url_column_exists ? 'detectada' : 'NO DETECTADA'}</span>
                 </div>
-                <p className="text-[10px] text-gray-400 mt-2 font-medium italic">Nota: Si la columna no existe, el guardado de imágenes fallará.</p>
+                <p className="text-[10px] text-gray-400 mt-2 italic font-medium">Requerida para la visualización de imágenes en el catálogo nativo.</p>
               </div>
             </div>
           ) : (
             <div className="py-20 text-center">
-              <Server size={48} className="mx-auto text-gray-200 mb-6 animate-pulse" />
-              <p className="font-black text-gray-300 uppercase text-[10px] tracking-widest">Ejecutando pruebas de latencia...</p>
+              <Activity size={48} className="mx-auto text-gray-100 mb-6 animate-pulse" />
+              <p className="font-black text-gray-300 uppercase text-[10px] tracking-widest">Consultando Edge Function...</p>
             </div>
           )}
         </div>
@@ -245,17 +253,17 @@ const AdminPage: React.FC = () => {
         <div className="space-y-10">
           <div className="flex flex-col lg:flex-row gap-8 justify-between items-center bg-white p-8 rounded-custom border border-gray-50 shadow-sm">
              <div className="flex gap-4 w-full lg:w-auto">
-               <button onClick={() => { setIsEditing(true); setCurrentProduct({ nombre: '', precio: 0, categoria: '', departamento: '', descripcion: '', imagenurl: '', disponible: true, unidad: 'und' }); }} className="flex-1 lg:flex-none bg-primary text-white px-10 py-6 rounded-2xl font-black uppercase text-[11px] tracking-widest flex items-center gap-4 shadow-xl">
+               <button onClick={() => { setIsEditing(true); setCurrentProduct({ nombre: '', precio: 0, categoria: '', departamento: '', descripcion: '', imagen_url: '', disponible: true, unidad: 'und' }); }} className="flex-1 lg:flex-none bg-primary text-white px-10 py-6 rounded-2xl font-black uppercase text-[11px] tracking-widest flex items-center justify-center gap-4 shadow-xl hover:scale-105 transition-all">
                  <Plus size={22}/> Nuevo Producto
                </button>
-               <label className="cursor-pointer bg-offwhite border border-gray-100 text-gray-500 px-10 py-6 rounded-2xl font-black uppercase text-[11px] tracking-widest flex items-center gap-4">
+               <label className="cursor-pointer bg-offwhite border border-gray-100 text-gray-500 px-10 py-6 rounded-2xl font-black uppercase text-[11px] tracking-widest flex items-center justify-center gap-4 hover:bg-gray-50 transition-all">
                  <FileText size={22}/> Excel
                  <input type="file" className="hidden" accept=".xlsx" onChange={handleImportExcel} />
                </label>
              </div>
              <div className="relative w-full lg:w-[450px]">
                 <Search size={24} className="absolute left-8 top-1/2 -translate-y-1/2 text-gray-300" />
-                <input type="text" placeholder="Buscar..." className="w-full pl-20 pr-8 py-6 rounded-2xl bg-offwhite border-none font-bold outline-none" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+                <input type="text" placeholder="Buscar por nombre o departamento..." className="w-full pl-20 pr-8 py-6 rounded-2xl bg-offwhite border-none font-bold outline-none focus:ring-4 focus:ring-primary/5 transition-all" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
              </div>
           </div>
           
@@ -264,30 +272,33 @@ const AdminPage: React.FC = () => {
               <table className="w-full">
                 <thead className="bg-offwhite/50 border-b border-gray-50">
                   <tr className="text-[10px] font-black text-gray-400 uppercase tracking-[0.4em]">
-                    <th className="px-10 py-8 text-left">Producto</th>
-                    <th className="px-10 py-8 text-left">Precio</th>
+                    <th className="px-10 py-8 text-left">Detalle Producto</th>
+                    <th className="px-10 py-8 text-left">Precio Ref.</th>
                     <th className="px-10 py-8 text-left">Departamento</th>
                     <th className="px-10 py-8 text-center">Estado</th>
-                    <th className="px-10 py-8 text-right">Acción</th>
+                    <th className="px-10 py-8 text-right">Gestión</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {filteredProducts.map(p => (
                     <tr key={p.id} className="hover:bg-offwhite/30 transition-all group">
-                      <td className="px-10 py-6 font-black text-primary">{p.nombre}</td>
-                      <td className="px-10 py-6 font-black text-primary">{formatCurrency(p.precio)}</td>
                       <td className="px-10 py-6">
-                        <span className="px-4 py-2 bg-primary/5 text-primary text-[10px] font-black uppercase rounded-xl border border-primary/10">{p.departamento}</span>
+                        <div className="font-black text-primary text-lg">{p.nombre}</div>
+                        <div className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">{p.unidad}</div>
+                      </td>
+                      <td className="px-10 py-6 font-black text-primary text-lg">{formatCurrency(p.precio)}</td>
+                      <td className="px-10 py-6">
+                        <span className="px-4 py-2 bg-primary/5 text-primary text-[10px] font-black uppercase rounded-xl border border-primary/10 tracking-widest">{p.departamento}</span>
                       </td>
                       <td className="px-10 py-6 text-center">
                         <span className={`px-4 py-2 rounded-full text-[9px] font-black uppercase tracking-widest ${p.disponible ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
-                          {p.disponible ? 'Activo' : 'Agotado'}
+                          {p.disponible ? '✓ Activo' : '✕ Agotado'}
                         </span>
                       </td>
                       <td className="px-10 py-6 text-right">
                         <div className="flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all">
-                          <button onClick={() => { setCurrentProduct({...p}); setIsEditing(true); }} className="p-4 text-primary bg-offwhite rounded-2xl hover:bg-primary hover:text-white transition-all"><Edit3 size={20}/></button>
-                          <button onClick={() => { if(confirm('¿Borrar?')) deleteProduct(p.id!).then(refreshData); }} className="p-4 text-red-500 bg-red-50 rounded-2xl hover:bg-red-500 hover:text-white transition-all"><Trash2 size={20}/></button>
+                          <button onClick={() => { setCurrentProduct({...p}); setIsEditing(true); }} className="p-4 text-primary bg-offwhite rounded-2xl hover:bg-primary hover:text-white transition-all shadow-inner"><Edit3 size={20}/></button>
+                          <button onClick={() => { if(confirm('¿Seguro que desea eliminar?')) deleteProduct(p.id!).then(refreshData); }} className="p-4 text-red-500 bg-red-50 rounded-2xl hover:bg-red-500 hover:text-white transition-all shadow-inner"><Trash2 size={20}/></button>
                         </div>
                       </td>
                     </tr>
@@ -301,42 +312,60 @@ const AdminPage: React.FC = () => {
 
       {isEditing && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-primary/40 backdrop-blur-xl animate-in fade-in duration-500">
-          <div className="bg-white rounded-[3rem] w-full max-w-4xl overflow-hidden shadow-2xl border border-white/20">
+          <div className="bg-white rounded-[3rem] w-full max-w-4xl overflow-hidden shadow-2xl border border-white/20 animate-in zoom-in-95">
             <div className="flex items-center justify-between p-10 border-b border-gray-50">
               <h3 className="text-3xl font-black text-primary flex items-center gap-5 tracking-tighter">
-                <Package className="text-accent" /> {currentProduct.id ? 'Editar Producto' : 'Nuevo Producto'}
+                <Package className="text-accent" /> {currentProduct.id ? 'Editar Producto' : 'Nuevo Registro'}
               </h3>
-              <button onClick={() => setIsEditing(false)} className="p-4 bg-offwhite text-gray-400 rounded-full">
+              <button onClick={() => setIsEditing(false)} className="p-4 bg-offwhite text-gray-400 rounded-full hover:bg-gray-100 transition-all">
                 <X size={28}/>
               </button>
             </div>
             <form onSubmit={handleSaveProduct} className="p-12 overflow-y-auto max-h-[75vh]">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
                 <div className="space-y-8">
-                  <input type="text" required placeholder="Nombre" className="w-full px-8 py-6 rounded-2xl bg-offwhite font-bold outline-none" value={currentProduct.nombre} onChange={e => setCurrentProduct({...currentProduct, nombre: e.target.value})} />
-                  <input type="number" step="0.01" required placeholder="Precio USD" className="w-full px-8 py-6 rounded-2xl bg-offwhite font-black outline-none" value={currentProduct.precio} onChange={e => setCurrentProduct({...currentProduct, precio: parseFloat(e.target.value)})} />
+                  <div>
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Nombre Comercial</label>
+                    <input type="text" required className="w-full px-8 py-6 rounded-2xl bg-offwhite font-bold outline-none border border-transparent focus:border-primary/10 transition-all" value={currentProduct.nombre} onChange={e => setCurrentProduct({...currentProduct, nombre: e.target.value})} />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Precio USD</label>
+                    <input type="number" step="0.01" required className="w-full px-8 py-6 rounded-2xl bg-offwhite font-black text-xl outline-none" value={currentProduct.precio} onChange={e => setCurrentProduct({...currentProduct, precio: parseFloat(e.target.value)})} />
+                  </div>
                   <div className="grid grid-cols-2 gap-6">
-                    <input type="text" required placeholder="Depto" className="w-full px-8 py-6 rounded-2xl bg-offwhite font-bold outline-none" value={currentProduct.departamento} onChange={e => setCurrentProduct({...currentProduct, departamento: e.target.value})} />
-                    <input type="text" required placeholder="Categoría" className="w-full px-8 py-6 rounded-2xl bg-offwhite font-bold outline-none" value={currentProduct.categoria} onChange={e => setCurrentProduct({...currentProduct, categoria: e.target.value})} />
+                    <div>
+                      <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Depto</label>
+                      <input type="text" required className="w-full px-8 py-6 rounded-2xl bg-offwhite font-bold outline-none" value={currentProduct.departamento} onChange={e => setCurrentProduct({...currentProduct, departamento: e.target.value})} />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Cat Filtro</label>
+                      <input type="text" required className="w-full px-8 py-6 rounded-2xl bg-offwhite font-bold outline-none" value={currentProduct.categoria} onChange={e => setCurrentProduct({...currentProduct, categoria: e.target.value})} />
+                    </div>
                   </div>
                 </div>
                 <div className="space-y-8">
-                  <div className="relative h-72 bg-offwhite border-4 border-dashed border-gray-100 rounded-[2.5rem] flex flex-col items-center justify-center overflow-hidden group">
-                    {currentProduct.imagenurl ? (
-                      <img src={currentProduct.imagenurl} className="w-full h-full object-contain p-6" />
-                    ) : (
-                      <Upload size={64} className="text-gray-200" />
-                    )}
-                    <button type="button" onClick={() => fileInputRef.current?.click()} className="absolute inset-0 bg-primary/80 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center text-white font-black text-[12px] uppercase">
-                      Cambiar Imagen
-                    </button>
-                    <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} />
-                    {uploadingImg && <div className="absolute inset-0 bg-white/95 flex items-center justify-center animate-pulse"><RefreshCw className="animate-spin text-accent" /></div>}
+                  <div>
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Visualización (Cloud Storage)</label>
+                    <div className="relative h-72 bg-offwhite border-4 border-dashed border-gray-100 rounded-[2.5rem] flex flex-col items-center justify-center overflow-hidden group shadow-inner">
+                      {currentProduct.imagen_url ? (
+                        <img src={currentProduct.imagen_url} className="w-full h-full object-contain p-6 mix-blend-multiply" />
+                      ) : (
+                        <div className="text-center p-8">
+                          <Upload size={48} className="mx-auto text-gray-200 mb-4" />
+                          <p className="text-[9px] font-black text-gray-300 uppercase tracking-[0.2em]">Seleccionar Imagen</p>
+                        </div>
+                      )}
+                      <button type="button" onClick={() => fileInputRef.current?.click()} className="absolute inset-0 bg-primary/80 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center text-white font-black text-[12px] uppercase tracking-widest backdrop-blur-sm">
+                        Subir Nueva
+                      </button>
+                      <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} />
+                      {uploadingImg && <div className="absolute inset-0 bg-white/95 flex items-center justify-center z-20"><RefreshCw className="animate-spin text-accent" /></div>}
+                    </div>
                   </div>
                 </div>
               </div>
-              <button type="submit" className="w-full bg-primary text-white py-8 rounded-[2.5rem] font-black uppercase text-base tracking-[0.4em] mt-12 shadow-2xl flex items-center justify-center gap-6">
-                <CheckCircle size={32}/> Guardar en Supabase
+              <button type="submit" className="w-full bg-primary text-white py-8 rounded-[2.5rem] font-black uppercase text-base tracking-[0.4em] mt-12 shadow-2xl hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-6">
+                <CheckCircle size={32}/> Confirmar Registro
               </button>
             </form>
           </div>

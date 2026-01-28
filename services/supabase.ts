@@ -27,7 +27,7 @@ export const upsertProduct = async (product: Partial<Product>) => {
     categoria: cleanedProduct.categoria,
     departamento: cleanedProduct.departamento,
     descripcion: cleanedProduct.descripcion,
-    imagenurl: cleanedProduct.imagenurl,
+    imagen_url: cleanedProduct.imagen_url,
     disponible: cleanedProduct.disponible,
     unidad: cleanedProduct.unidad,
     stock: cleanedProduct.stock || 0
