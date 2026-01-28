@@ -16,15 +16,11 @@ export const fetchProducts = async () => {
 };
 
 export const upsertProduct = async (product: Partial<Product>) => {
-  // Limpieza de datos para evitar errores de tipo o columnas inexistentes
   const cleanedProduct = { ...product };
-  
-  // Si el id es una cadena vacía o nulo, lo eliminamos para que Supabase genere uno nuevo
   if (!cleanedProduct.id) {
     delete cleanedProduct.id;
   }
 
-  // Aseguramos que solo enviamos los campos que la tabla 'productos' espera
   const payload = {
     nombre: cleanedProduct.nombre,
     precio: cleanedProduct.precio,
@@ -41,10 +37,7 @@ export const upsertProduct = async (product: Partial<Product>) => {
     .from('productos')
     .upsert(cleanedProduct.id ? { ...payload, id: cleanedProduct.id } : payload);
     
-  if (error) {
-    console.error('Supabase Upsert Error:', error);
-    throw error;
-  }
+  if (error) throw error;
   return data;
 };
 
@@ -129,4 +122,16 @@ export const uploadProductImage = async (file: File) => {
     .getPublicUrl(filePath);
 
   return data.publicUrl;
+};
+
+// --- HEALTH CHECK (EDGE FUNCTION) ---
+export const checkSystemHealth = async () => {
+  try {
+    const { data, error } = await supabase.functions.invoke('health_check');
+    if (error) throw error;
+    return data;
+  } catch (err) {
+    console.error('Health Check failed:', err);
+    return { ok: false, error: 'Edge Function inaccesible' };
+  }
 };
