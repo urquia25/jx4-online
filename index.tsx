@@ -1,16 +1,23 @@
 
 import React from 'react';
-import { createRoot } from 'react-dom/client';
+import ReactDOM from 'react-dom/client';
 import App from './App';
 
-const rootElement = document.getElementById('root');
-if (!rootElement) {
-  throw new Error("No se pudo encontrar el elemento root para montar la aplicación");
-}
+const startApp = () => {
+  const rootElement = document.getElementById('root');
+  if (!rootElement) return;
 
-const root = createRoot(rootElement);
-root.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-);
+  const root = ReactDOM.createRoot(rootElement);
+  root.render(
+    <React.StrictMode>
+      <App />
+    </React.StrictMode>
+  );
+};
+
+// Asegurar que el DOM esté listo
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', startApp);
+} else {
+  startApp();
+}

@@ -1,7 +1,5 @@
 {
-  "name": "JX4 Catálogo y Pedidos v9.4",
-  "description": "Un sistema avanzado de catálogo y pedidos para JX4 Paracotos, integrado con Google Apps Script y Supabase.",
-  "requestFramePermissions": [
-    "geolocation"
-  ]
+  "name": "Jx4 Catálogo y Pedidos",
+  "description": "Una aplicación de catálogo digital ligera integrada con Google Sheets y WhatsApp para una gestión de pedidos eficiente y minimalista.",
+  "requestFramePermissions": []
 }

@@ -1,48 +1,51 @@
-
 export interface Product {
-  id?: string;
+  id: string;
   nombre: string;
-  precio: number;
-  categoria: string;
-  departamento: string;
+  categoria: string; // Ahora contiene el ID del departamento (ej: H001)
   descripcion: string;
-  imagen_url: string;
-  disponible: boolean;
-  unidad: string;
-  stock?: number;
-  created_at?: string;
-  updated_at?: string;
-}
-
-export interface Config {
-  tasa_cambio: number;
-  whatsapp_principal: string;
-  cintillo?: string;
-  [key: string]: any;
-}
-
-export interface Category {
-  id?: string;
-  nombre: string;
-  telefono?: string;
+  precio: number;
+  inventario: number;
+  imagenurl: string;
+  imagenurl_publica?: string;
+  whatsapp_vendedor?: string; // Teléfono específico del departamento
 }
 
 export interface CartItem extends Product {
-  quantity: number;
+  cantidadSeleccionada: number;
 }
 
-export interface Order {
-  id?: string;
-  id_pedido?: string;
-  telefono: string;
+export interface Cliente {
   nombre: string;
+  telefono: string;
   direccion: string;
-  productos: CartItem[];
+  notas?: string;
+}
+
+export interface OrderRecord {
+  idPedido: string;
+  fecha: string;
+  estado: string;
+  cliente: Cliente;
   total: number;
-  totalVes: number;
-  metodo_pago: 'efectivo' | 'transferencia' | 'pago_movil';
-  notas: string;
-  fecha?: string;
-  estado?: string;
-  departamento: string;
+}
+
+export interface ApiResponse<T> {
+  success: boolean;
+  data?: T;
+  error?: string;
+}
+
+export interface Department {
+  id: string;      // ID único (Key)
+  nombre: string;  // Nombre visual (Label)
+  telefono: string;
+}
+
+export interface AppConfig {
+  tasaDolar: number;
+  whatsappPrincipal: string;
+  folderIdImagenes: string;
+  appSheetAppName: string;
+  appSheetTableName: string;
+  departments: Department[];
 }

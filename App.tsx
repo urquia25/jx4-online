@@ -1,88 +1,64 @@
 
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, Link } from 'react-router-dom';
-import { AppProvider, useAppContext } from './contexts/AppContext';
-import { CartProvider } from './contexts/CartContext';
-import { AuthProvider } from './contexts/AuthContext';
-import Header from './components/Layout/Header';
-import HomePage from './pages/HomePage';
-import CheckoutPage from './pages/CheckoutPage';
-import MyOrdersPage from './pages/MyOrdersPage';
-import AdminPage from './pages/AdminPage';
-import { ShieldAlert, TrendingUp, Zap } from 'lucide-react';
-
-const Footer: React.FC = () => {
-  const { config } = useAppContext();
-  
-  return (
-    <footer className="bg-white border-t border-gray-100 pt-20 pb-10">
-      <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-3 gap-16">
-        <div>
-          <h3 className="text-2xl font-black mb-6 text-primary tracking-tighter">JX4 Paracotos</h3>
-          <p className="text-primary font-bold leading-relaxed text-sm">
-            Desde el corazón de Paracotos, los productos que necesitas.
-          </p>
-          
-          <div className="mt-8 inline-flex items-center gap-4 bg-offwhite px-5 py-2.5 rounded-2xl border border-gray-50">
-            <TrendingUp size={14} className="text-gray-300" />
-            <div className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">
-              Ref. Día: <span className="text-primary">{config.tasa_cambio} Bs.</span>
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <h4 className="font-black mb-8 uppercase text-[10px] tracking-[0.2em] text-accent">Explorar</h4>
-          <ul className="space-y-5 text-[11px] font-bold uppercase tracking-widest text-gray-400">
-            <li><Link to="/" className="hover:text-primary transition-colors">Catálogo Digital</Link></li>
-            <li><Link to="/mis-pedidos" className="hover:text-primary transition-colors">Estado de Pedidos</Link></li>
-            <li><Link to="/admin" className="flex items-center gap-2 hover:text-primary transition-colors"><ShieldAlert size={14}/> Acceso Admin</Link></li>
-          </ul>
-        </div>
-
-        <div>
-          <h4 className="font-black mb-8 uppercase text-[10px] tracking-[0.2em] text-accent">Alianzas</h4>
-          <p className="text-sm text-gray-400 mb-6 font-medium italic">Potencia tu marca. Llega a todo Paracotos con nosotros.</p>
-          <a href="https://wa.me/584241208234" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-3 bg-accent text-white px-10 py-4 rounded-xl font-black text-[11px] uppercase tracking-[0.2em] shadow-xl shadow-accent/20 hover:scale-105 transition-all active:scale-95">
-            <Zap size={16} fill="currentColor" /> ¡Vende Aquí!
-          </a>
-        </div>
-      </div>
-      
-      <div className="max-w-7xl mx-auto px-4 mt-20 pt-8 border-t border-gray-50 flex flex-col md:flex-row justify-between items-center gap-4 text-[9px] text-gray-300 font-black uppercase tracking-[0.2em]">
-        <span>&copy; {new Date().getFullYear()} JX4 Paracotos • v11.0.0</span>
-        <div className="flex gap-6 italic">
-          <span>Distribución Directa</span>
-          <Link to="/admin" className="hover:text-primary">Acceso Privado</Link>
-        </div>
-      </div>
-    </footer>
-  );
-};
+import React, { useState, Suspense, useEffect } from 'react';
+import { CartProvider } from './CartContext';
+import Catalog from './Catalog';
+import Checkout from './Checkout';
+import AdminPanel from './AdminPanel';
 
 const App: React.FC = () => {
+  const [currentPage, setCurrentPage] = useState<'catalog' | 'checkout' | 'admin'>('catalog');
+  const [hasError, setHasError] = useState(false);
+
+  useEffect(() => {
+    const handleError = (error: ErrorEvent) => {
+      console.error("App Error:", error);
+      setHasError(true);
+    };
+    window.addEventListener('error', handleError);
+    return () => window.removeEventListener('error', handleError);
+  }, []);
+
+  if (hasError) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen p-6 text-center bg-white">
+        <h2 className="text-xl font-bold mb-2">Algo salió mal</h2>
+        <p className="text-gray-500 mb-6 text-sm">No pudimos cargar la aplicación correctamente en este dispositivo.</p>
+        <button 
+          onClick={() => window.location.reload()} 
+          className="bg-black text-white px-6 py-3 rounded-xl font-bold"
+        >
+          Reintentar
+        </button>
+      </div>
+    );
+  }
+
   return (
-    <Router>
-      <AuthProvider>
-        <AppProvider>
-          <CartProvider>
-            <div className="min-h-screen flex flex-col bg-[#fcfcfc]">
-              <Header />
-              <main className="flex-1">
-                <Routes>
-                  <Route path="/" element={<HomePage />} />
-                  <Route path="/checkout" element={<CheckoutPage />} />
-                  <Route path="/mis-pedidos" element={<MyOrdersPage />} />
-                  <Route path="/admin" element={<AdminPage />} />
-                  <Route path="*" element={<Navigate to="/" replace />} />
-                </Routes>
-              </main>
-              <Footer />
-            </div>
-          </CartProvider>
-        </AppProvider>
-      </AuthProvider>
-    </Router>
+    <CartProvider>
+      <div className="antialiased text-gray-900 min-h-screen bg-[#fcfcfc]">
+        <Suspense fallback={
+          <div className="flex flex-col items-center justify-center h-screen">
+            <div className="w-8 h-8 border-4 border-gray-200 border-t-black rounded-full animate-spin mb-4"></div>
+            <p className="text-sm font-medium text-gray-400">Iniciando Jx4...</p>
+          </div>
+        }>
+          {currentPage === 'catalog' && (
+            <>
+              <Catalog onNavigate={setCurrentPage} />
+              <button 
+                onClick={() => setCurrentPage('admin')}
+                className="fixed bottom-6 right-6 p-4 bg-white border border-gray-100 rounded-full shadow-xl text-gray-300 hover:text-black transition-all active:scale-95 z-[60]"
+                title="Acceso Admin"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </>
+          )}
+          {currentPage === 'checkout' && <Checkout onBack={() => setCurrentPage('catalog')} />}
+          {currentPage === 'admin' && <AdminPanel onBack={() => setCurrentPage('catalog')} />}
+        </Suspense>
+      </div>
+    </CartProvider>
   );
 };
 
